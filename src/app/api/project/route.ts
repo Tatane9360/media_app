@@ -21,7 +21,8 @@ export async function GET() {
     await connectDB();
 
     // Récupérer les projets de l'utilisateur
-    let query = { admin_id: 1 };
+    // Utiliser un objet vide pour récupérer tous les projets sans filtre
+    const query = {};
 
     // Si l'utilisateur n'est pas admin, filtrer par son ID - Commenté temporairement
     // if (!session.user.isAdmin) {
