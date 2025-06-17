@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Timeline, Clip, AudioTrack, Effect } from '@/interface/iProject';
 import { VideoAsset } from '@/interface/iVideoAsset';
 import { CloudinaryImage } from './CloudinaryImage';
@@ -51,6 +51,9 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       if (newTime !== currentTime) {
         setCurrentTime(newTime);
       }
+      
+      // Mettre à jour les marqueurs de temps lors du défilement
+      setTimeMarkers(calculateTimeMarkers());
     }
   };
   
@@ -399,6 +402,95 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     });
   };
   
+  // Calcul des marqueurs de temps dynamiques
+  const calculateTimeMarkers = useCallback(() => {
+    if (!timelineRef.current) return { primary: [], secondary: [] };
+    
+    // Largeur visible de la timeline
+    const viewportWidth = timelineRef.current.clientWidth;
+    
+    // Temps visible dans la viewport (en secondes)
+    const visibleDuration = viewportWidth / pixelsPerSecond;
+    
+    // Déterminer l'intervalle approprié entre les marqueurs principaux
+    let primaryInterval = 1; // Intervalle par défaut: 1 seconde
+    
+    if (scale <= 25) {
+      primaryInterval = 60; // 1 minute
+    } else if (scale <= 50) {
+      primaryInterval = 30; // 30 secondes
+    } else if (scale <= 75) {
+      primaryInterval = 15; // 15 secondes
+    } else if (scale <= 100) {
+      primaryInterval = 5; // 5 secondes
+    } else if (scale <= 150) {
+      primaryInterval = 2; // 2 secondes
+    }
+    
+    // Limiter le nombre de marqueurs pour éviter l'encombrement
+    const maxPrimaryMarkers = Math.ceil(viewportWidth / 100); // Environ 100px entre chaque marqueur
+    
+    if (visibleDuration / primaryInterval > maxPrimaryMarkers) {
+      primaryInterval = Math.ceil(visibleDuration / maxPrimaryMarkers);
+    }
+    
+    // Calculer l'intervalle pour les marqueurs secondaires
+    let secondaryInterval = primaryInterval / 4;
+    if (secondaryInterval < 0.25) secondaryInterval = 0.25;
+    
+    // Calculer le temps de début visible
+    const scrollPosition = timelineRef.current.scrollLeft;
+    const startTime = Math.floor(scrollPosition / pixelsPerSecond / primaryInterval) * primaryInterval;
+    
+    // Générer les marqueurs principaux
+    const primaryMarkers = [];
+    const secondaryMarkers = [];
+    
+    // Ajouter quelques marqueurs avant le début visible pour le défilement fluide
+    for (let time = startTime - primaryInterval * 2; time <= Math.ceil(timeline.duration) + primaryInterval; time += primaryInterval) {
+      if (time >= 0) {
+        primaryMarkers.push(time);
+        
+        // Ajouter les marqueurs secondaires entre les marqueurs principaux
+        if (scale > 50) { // Ajouter des marqueurs secondaires seulement à partir d'un certain niveau de zoom
+          for (let j = 1; j < (primaryInterval / secondaryInterval); j++) {
+            const secTime = time + j * secondaryInterval;
+            if (secTime < timeline.duration && secTime >= 0) {
+              secondaryMarkers.push(secTime);
+            }
+          }
+        }
+      }
+    }
+    
+    return { primary: primaryMarkers, secondary: secondaryMarkers };
+  }, [scale, pixelsPerSecond, timeline.duration]);
+  
+  // Mise à jour dynamique des marqueurs lors du défilement et du zoom
+  const [timeMarkers, setTimeMarkers] = useState<{
+    primary: number[];
+    secondary: number[];
+  }>({ primary: [], secondary: [] });
+  
+  useEffect(() => {
+    // Mettre à jour les marqueurs au chargement et lors des changements de zoom
+    const updateMarkers = () => {
+      setTimeMarkers(calculateTimeMarkers());
+    };
+    
+    updateMarkers();
+    
+    // Observer les redimensionnements de la fenêtre
+    const resizeObserver = new ResizeObserver(updateMarkers);
+    if (timelineRef.current) {
+      resizeObserver.observe(timelineRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [scale, timeline.duration, calculateTimeMarkers]);
+  
   return (
     <div className="flex flex-col w-full h-full">
       {/* Prévisualisation vidéo */}
@@ -451,14 +543,23 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
           className="h-8 border-b border-gray-700 relative"
           style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
         >
-          {/* Graduations */}
-          {Array.from({ length: Math.ceil(timeline.duration) }).map((_, i) => (
+          {/* Marqueurs secondaires (plus petits) */}
+          {timeMarkers.secondary.map((time) => (
             <div 
-              key={`tick-${i}`}
+              key={`secondary-${time}`}
+              className="absolute top-4 h-4 border-l border-gray-700"
+              style={{ left: `${time * pixelsPerSecond}px` }}
+            />
+          ))}
+          
+          {/* Marqueurs principaux (avec étiquettes) */}
+          {timeMarkers.primary.map((time) => (
+            <div 
+              key={`primary-${time}`}
               className="absolute top-0 bottom-0 border-l border-gray-600 text-xs text-white"
-              style={{ left: `${i * pixelsPerSecond}px` }}
+              style={{ left: `${time * pixelsPerSecond}px` }}
             >
-              <span className="ml-1">{formatTime(i)}</span>
+              <span className="ml-1">{formatTime(time)}</span>
             </div>
           ))}
           
