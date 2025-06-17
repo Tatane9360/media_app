@@ -10,68 +10,50 @@ const FilterSettingsSchema = new mongoose.Schema({
   exposure: {
     type: Number,
     default: 0,
-    min: [-100, 'Exposure cannot be less than -100'],
-    max: [100, 'Exposure cannot be more than 100']
+    min: [-2, 'Exposure cannot be less than -2'],
+    max: [2, 'Exposure cannot be more than 2']
   },
   brightness: {
     type: Number,
-    default: 0,
-    min: [-100, 'Brightness cannot be less than -100'],
-    max: [100, 'Brightness cannot be more than 100']
+    default: 1,
+    min: [0.5, 'Brightness cannot be less than 0.5'],
+    max: [1.5, 'Brightness cannot be more than 1.5']
   },
   contrast: {
     type: Number,
-    default: 0,
-    min: [-100, 'Contrast cannot be less than -100'],
-    max: [100, 'Contrast cannot be more than 100']
+    default: 1,
+    min: [0.5, 'Contrast cannot be less than 0.5'],
+    max: [2, 'Contrast cannot be more than 2']
   },
-  saturation: {
+  saturate: {
+    type: Number,
+    default: 1,
+    min: [0, 'Saturation cannot be negative'],
+    max: [2, 'Saturation cannot be more than 2']
+  },
+  hue_rotate: {
     type: Number,
     default: 0,
-    min: [-100, 'Saturation cannot be less than -100'],
-    max: [100, 'Saturation cannot be more than 100']
-  },
-  hue: {
-    type: Number,
-    default: 0,
-    min: [-180, 'Hue cannot be less than -180'],
-    max: [180, 'Hue cannot be more than 180']
+    min: [0, 'Hue rotation cannot be negative'],
+    max: [360, 'Hue rotation cannot be more than 360 degrees']
   },
   grayscale: {
     type: Number,
     default: 0,
     min: [0, 'Grayscale cannot be negative'],
-    max: [100, 'Grayscale cannot be more than 100']
-  },
-  sepia: {
-    type: Number,
-    default: 0,
-    min: [0, 'Sepia cannot be negative'],
-    max: [100, 'Sepia cannot be more than 100']
-  },
-  invert: {
-    type: Number,
-    default: 0,
-    min: [0, 'Invert cannot be negative'],
-    max: [100, 'Invert cannot be more than 100']
+    max: [1, 'Grayscale cannot be more than 1']
   },
   blur: {
     type: Number,
     default: 0,
     min: [0, 'Blur cannot be negative'],
-    max: [20, 'Blur cannot be more than 20']
-  },
-  gamma: {
-    type: Number,
-    default: 1,
-    min: [0.1, 'Gamma cannot be less than 0.1'],
-    max: [3, 'Gamma cannot be more than 3']
+    max: [10, 'Blur cannot be more than 10px']
   },
   opacity: {
     type: Number,
-    default: 100,
+    default: 1,
     min: [0, 'Opacity cannot be negative'],
-    max: [100, 'Opacity cannot be more than 100']
+    max: [1, 'Opacity cannot be more than 1']
   }
 }, {
   timestamps: true
