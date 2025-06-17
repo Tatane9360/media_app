@@ -2,7 +2,7 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { CloudinaryImage, VideoThumbnail } from '@/components';
 
 export default function AdminUpload() {
   const router = useRouter();
@@ -279,9 +279,17 @@ export default function AdminUpload() {
             {uploadedAssets.map((asset) => (
               <div key={asset.id} className="bg-gray-50 rounded-lg overflow-hidden">
                 <div className="aspect-video bg-gray-200 relative">
-                  {asset.metadata.thumbnailUrl && (
-                    <Image
+                  {asset.metadata.thumbnailUrl ? (
+                    <CloudinaryImage
                       src={asset.metadata.thumbnailUrl}
+                      alt={asset.originalName}
+                      width={320}
+                      height={180}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <VideoThumbnail
+                      videoUrl={asset.storageUrl}
                       alt={asset.originalName}
                       width={320}
                       height={180}

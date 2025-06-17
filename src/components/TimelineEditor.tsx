@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Timeline, Clip, AudioTrack, Effect } from '@/interface/iProject';
 import { VideoAsset } from '@/interface/iVideoAsset';
+import { CloudinaryImage } from './CloudinaryImage';
+import { VideoThumbnail } from './VideoThumbnail';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -26,6 +27,19 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [draggedAsset, setDraggedAsset] = useState<VideoAsset | null>(null);
   
+  // État pour l'indication de drop
+  const [dropIndicator, setDropIndicator] = useState<{
+    trackIndex: number;
+    position: number;
+    width: number;
+    visible: boolean;
+  }>({
+    trackIndex: 0,
+    position: 0,
+    width: 0,
+    visible: false
+  });
+  
   // Calculer la durée visible en pixels
   const pixelsPerSecond = scale / 10; // 10px par seconde à 100% de zoom
   
@@ -45,13 +59,23 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
 
   // Ajouter un clip à la timeline
   const addClip = (asset: VideoAsset, trackIndex = 0) => {
+    // Calculer la position de départ du nouveau clip
+    let startTime = currentTime;
+    
+    // Si des clips existent déjà, placer le nouveau clip à la fin du dernier
+    if (timeline.clips.length > 0) {
+      // Trouver le temps de fin maximum parmi tous les clips
+      const maxEndTime = Math.max(...timeline.clips.map(clip => clip.endTime));
+      startTime = maxEndTime;
+    }
+    
     const newClip: Clip = {
       id: `clip-${Date.now()}`,
-      assetId: asset.id,
+      assetId: asset._id || asset.id,
       asset, // Pour l'UI
       trackIndex,
-      startTime: currentTime,
-      endTime: currentTime + asset.duration,
+      startTime,
+      endTime: startTime + asset.duration,
       trimStart: 0,
       trimEnd: 0,
       volume: 1,
@@ -107,7 +131,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const addAudioTrack = (asset: VideoAsset, trackIndex = 0) => {
     const newAudioTrack: AudioTrack = {
       id: `audio-${Date.now()}`,
-      assetId: asset.id,
+      assetId: asset._id || asset.id,
       asset, // Pour l'UI
       trackIndex,
       startTime: currentTime,
@@ -144,22 +168,96 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     setDraggedAsset(asset);
   };
   
-  const handleDragOver = (e: React.DragEvent) => {
+  // Pour le drag & drop des clips déjà présents dans la timeline
+  const [draggedClip, setDraggedClip] = useState<Clip | null>(null);
+  const [dragStartX, setDragStartX] = useState<number>(0);
+  const [draggedClipOffsetX, setDraggedClipOffsetX] = useState<number>(0);
+  
+  // Commencer à glisser un clip existant
+  const handleClipDragStart = (e: React.DragEvent, clip: Clip) => {
+    e.stopPropagation();
+    setDraggedClip(clip);
+    
+    // Calculer l'offset pour maintenir la position relative du pointeur dans le clip
+    const clipElement = e.currentTarget as HTMLElement;
+    const clipRect = clipElement.getBoundingClientRect();
+    const offsetX = e.clientX - clipRect.left;
+    setDraggedClipOffsetX(offsetX);
+    
+    // Définir les données de transfert (obligatoire pour le drag & drop)
+    e.dataTransfer.setData('text/plain', clip.id || '');
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Appliquer une classe visuelle
+    clipElement.classList.add('opacity-50');
+  };
+  
+  const handleDragOver = (e: React.DragEvent, trackIndex: number) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Mettre à jour l'indicateur de drop
+    updateDropIndicator(e, trackIndex);
+  };
+  
+  const handleDragLeave = () => {
+    // Masquer l'indicateur de drop quand on quitte la zone
+    setDropIndicator(prev => ({ ...prev, visible: false }));
   };
   
   const handleDrop = (e: React.DragEvent, trackIndex: number) => {
     e.preventDefault();
-    if (draggedAsset) {
-      // Calculer la position temporelle basée sur la position de la souris
-      const trackRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const offsetX = e.clientX - trackRect.left;
-      const dropTime = offsetX / pixelsPerSecond;
+    
+    // Calculer la position temporelle basée sur la position de la souris
+    const trackRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const offsetX = e.clientX - trackRect.left;
+    const dropTime = offsetX / pixelsPerSecond;
+    
+    // Récupérer l'ID du clip glissé depuis les données de transfert
+    const clipId = e.dataTransfer.getData('text/plain');
+    
+    // Cas 1 : Glisser-déposer d'un clip existant
+    if (clipId && timeline.clips.find(c => c.id === clipId)) {
+      const existingClip = timeline.clips.find(c => c.id === clipId);
+      if (!existingClip) return;
       
+      // Calculer la nouvelle position en tenant compte du point de saisie
+      const newStartTime = Math.max(0, dropTime - (draggedClipOffsetX / pixelsPerSecond));
+      const clipDuration = existingClip.endTime - existingClip.startTime;
+      
+      // Ajuster la position pour éviter les chevauchements
+      const updatedClip = adjustClipPosition(timeline.clips, {
+        ...existingClip,
+        trackIndex,
+        startTime: newStartTime,
+        endTime: newStartTime + clipDuration
+      });
+      
+      // Mettre à jour la timeline avec le clip modifié
+      const newClips = timeline.clips.map(clip => 
+        clip.id === clipId ? updatedClip : clip
+      );
+      
+      // Recalculer la durée totale de la timeline
+      const maxEndTime = Math.max(...newClips.map(clip => clip.endTime));
+      
+      const newTimeline = {
+        ...timeline,
+        clips: newClips,
+        duration: Math.max(timeline.duration, maxEndTime)
+      };
+      
+      onChange(newTimeline);
+      setSelectedClipId(clipId);
+      setDraggedClip(null);
+      setDropIndicator(prev => ({ ...prev, visible: false }));
+    } 
+    // Cas 2 : Glisser-déposer d'un nouvel asset depuis la bibliothèque
+    else if (draggedAsset) {
       // Créer un nouveau clip à la position de drop
-      const newClip: Clip = {
+      let newClip: Clip = {
         id: `clip-${Date.now()}`,
-        assetId: draggedAsset.id,
+        assetId: draggedAsset._id || draggedAsset.id,
         asset: draggedAsset, // Pour l'UI
         trackIndex,
         startTime: dropTime,
@@ -170,6 +268,9 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
         effects: []
       };
       
+      // Ajuster la position pour éviter les chevauchements
+      newClip = adjustClipPosition(timeline.clips, newClip);
+      
       const newTimeline = {
         ...timeline,
         clips: [...timeline.clips, newClip],
@@ -179,6 +280,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       onChange(newTimeline);
       setSelectedClipId(newClip.id as string);
       setDraggedAsset(null);
+      setDropIndicator(prev => ({ ...prev, visible: false }));
     }
   };
   
@@ -227,6 +329,75 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
       cancelAnimationFrame(animationId);
     };
   }, [playing, currentTime, timeline.duration, pixelsPerSecond]);
+  
+  // Fonction pour vérifier et ajuster les clips en cas de chevauchement
+  const adjustClipPosition = (clips: Clip[], newClip: Clip): Clip => {
+    // Trouver les clips sur la même piste
+    const clipsOnSameTrack = clips.filter(
+      clip => clip.trackIndex === newClip.trackIndex && clip.id !== newClip.id
+    );
+    
+    // Copier le clip pour les modifications
+    let adjustedClip = { ...newClip };
+    
+    // Vérifier chaque clip pour détecter les chevauchements
+    for (const clip of clipsOnSameTrack) {
+      // Vérifier si le nouveau clip chevauche ce clip existant
+      if (
+        adjustedClip.startTime < clip.endTime && 
+        adjustedClip.endTime > clip.startTime
+      ) {
+        // Si le nouveau clip commence avant le clip existant, le placer avant
+        if (adjustedClip.startTime <= clip.startTime) {
+          const newEndTime = clip.startTime;
+          adjustedClip = {
+            ...adjustedClip,
+            endTime: newEndTime,
+            // Ajuster la durée du trim si nécessaire
+            trimEnd: adjustedClip.trimEnd ? 
+              adjustedClip.trimEnd + (adjustedClip.endTime - newEndTime) : 
+              0
+          };
+        } 
+        // Sinon, le placer après le clip existant
+        else {
+          const newStartTime = clip.endTime;
+          const clipDuration = adjustedClip.endTime - adjustedClip.startTime;
+          adjustedClip = {
+            ...adjustedClip,
+            startTime: newStartTime,
+            endTime: newStartTime + clipDuration
+          };
+        }
+      }
+    }
+    
+    return adjustedClip;
+  };
+  
+  // Mise à jour de la position de l'indicateur de drop
+  const updateDropIndicator = (e: React.DragEvent, trackIndex: number) => {
+    if (!draggedAsset && !draggedClip) return;
+    
+    const trackRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const offsetX = e.clientX - trackRect.left;
+    const dropTime = offsetX / pixelsPerSecond;
+    
+    // Calculer la largeur de l'indicateur
+    let width = 0;
+    if (draggedAsset) {
+      width = draggedAsset.duration * pixelsPerSecond;
+    } else if (draggedClip) {
+      width = (draggedClip.endTime - draggedClip.startTime) * pixelsPerSecond;
+    }
+    
+    setDropIndicator({
+      trackIndex,
+      position: dropTime * pixelsPerSecond,
+      width,
+      visible: true
+    });
+  };
   
   return (
     <div className="flex flex-col w-full h-full">
@@ -305,7 +476,8 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
               key={`track-${trackIndex}`}
               className="h-20 border-b border-gray-700 relative"
               style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, trackIndex)}
+              onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, trackIndex)}
             >
               {/* Clips de cette piste */}
@@ -314,7 +486,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 .map(clip => (
                   <div
                     key={clip.id}
-                    className={`absolute top-1 bottom-1 rounded overflow-hidden cursor-pointer ${
+                    className={`absolute top-1 bottom-1 rounded overflow-hidden cursor-grab ${
                       clip.id === selectedClipId ? 'ring-2 ring-blue-500' : ''
                     }`}
                     style={{
@@ -323,6 +495,12 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
                       backgroundColor: clip.id === selectedClipId ? 'rgba(59, 130, 246, 0.5)' : 'rgba(75, 85, 99, 0.5)'
                     }}
                     onClick={() => setSelectedClipId(clip.id as string)}
+                    draggable={true}
+                    onDragStart={(e) => handleClipDragStart(e, clip)}
+                    onDragEnd={(e) => {
+                      (e.currentTarget as HTMLElement).classList.remove('opacity-50');
+                      setDropIndicator(prev => ({ ...prev, visible: false }));
+                    }}
                   >
                     <div className="p-1 text-xs text-white truncate">
                       {clip.asset?.originalName || `Clip ${clip.id}`}
@@ -363,7 +541,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 ))}
             </div>
           ))}
-        </div>
+        </div>        
       </div>
       
       {/* Propriétés du clip sélectionné */}
@@ -447,16 +625,24 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
         <div className="grid grid-cols-4 gap-4">
           {videoAssets.map(asset => (
             <div
-              key={asset.id}
+              key={asset._id || asset.id}
               className="bg-gray-700 rounded overflow-hidden cursor-pointer"
               draggable
               onDragStart={() => handleDragStart(asset)}
               onClick={() => addClip(asset)}
             >
               <div className="aspect-video bg-black relative">
-                {asset.metadata.thumbnailUrl && (
-                  <Image
-                    src={asset.metadata.thumbnailUrl || ''}
+                {asset.metadata.thumbnailUrl ? (
+                  <CloudinaryImage
+                    src={asset.metadata.thumbnailUrl}
+                    alt={asset.originalName}
+                    width={160}
+                    height={90}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <VideoThumbnail
+                    videoUrl={asset.storageUrl}
                     alt={asset.originalName}
                     width={160}
                     height={90}

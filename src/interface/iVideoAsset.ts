@@ -10,6 +10,7 @@ export interface VideoAssetMetadata {
 }
 
 export interface VideoAsset {
+  _id?: string;
   id: string;
   admin_id: string;
   originalName: string;

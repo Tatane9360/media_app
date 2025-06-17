@@ -1,85 +1,147 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { v2 as cloudinary } from "cloudinary";
 import { generateThumbnail } from "./videoProcessing";
+import { tmpdir } from "os";
+import { join } from "path";
+import { writeFile } from "fs/promises";
+import { v4 as uuidv4 } from "uuid";
+import stream from "stream";
 
-// Configuration
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "eu-west-3",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
+// Types pour Cloudinary
+interface CloudinaryUploadOptions {
+  folder: string;
+  public_id?: string;
+  resource_type: "video" | "image" | "raw" | "auto";
+  transformation?: any[];
+}
+
+// Configuration de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || "media-app-videos";
-const CLOUDFRONT_URL = process.env.CLOUDFRONT_URL || "";
+// Fonction utilitaire pour uploader un buffer vers Cloudinary
+async function uploadBufferToCloudinary(
+  buffer: Buffer,
+  options: CloudinaryUploadOptions
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    // Créer un stream à partir du buffer
+    const readableStream = new stream.PassThrough();
+    readableStream.end(buffer);
+
+    // Créer un uploader stream
+    const uploadStream = cloudinary.uploader.upload_stream(
+      options,
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+
+    // Pipe le buffer vers l'uploader
+    readableStream.pipe(uploadStream);
+  });
+}
 
 /**
- * Télécharge un fichier vers le stockage cloud (AWS S3)
+ * Télécharge un fichier vers le stockage cloud (Cloudinary)
  */
 export async function uploadToCloudStorage(
   fileBuffer: Buffer,
   fileName: string,
   mimeType: string
 ): Promise<{ url: string; thumbnailUrl: string }> {
-  // Générer un nom de fichier unique
+  // Générer un ID unique pour le fichier
   const timestamp = Date.now();
-  const fileKey = `uploads/${timestamp}-${fileName.replace(
+  const uniqueFileName = `${timestamp}-${fileName.replace(
     /[^a-zA-Z0-9.-]/g,
     "_"
   )}`;
-  const thumbnailKey = `thumbnails/${timestamp}-${fileName.replace(
-    /[^a-zA-Z0-9.-]/g,
-    "_"
-  )}.jpg`;
 
-  // Télécharger le fichier vidéo sur S3
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: fileKey,
-      Body: fileBuffer,
-      ContentType: mimeType,
-      ACL: "public-read",
-    })
-  );
+  // Vérifier si Cloudinary est configuré
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    console.log("Cloudinary non configuré, simulation du stockage cloud");
 
-  // Générer une miniature et la télécharger
+    // Stocker temporairement la vidéo sur le disque si possible
+    try {
+      const tempDir = join(tmpdir(), "media_app_temp");
+      const fs = await import("fs");
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      const localPath = join(tempDir, uniqueFileName);
+      await writeFile(localPath, fileBuffer);
+
+      console.log("Fichier vidéo temporaire sauvegardé:", localPath);
+
+      // Simuler les URLs de stockage cloud
+      return {
+        url: `file://${localPath}`,
+        thumbnailUrl: "",
+      };
+    } catch (error) {
+      console.warn("Erreur lors de la sauvegarde temporaire:", error);
+
+      // Retourner des URLs factices
+      return {
+        url: `https://example.com/uploads/${uniqueFileName}`,
+        thumbnailUrl: `https://example.com/thumbnails/${uniqueFileName}.jpg`,
+      };
+    }
+  }
+
   try {
-    const thumbnailBuffer = await generateThumbnail(fileBuffer);
+    // Télécharger la vidéo vers Cloudinary
+    const result = await uploadBufferToCloudinary(fileBuffer, {
+      folder: "uploads",
+      public_id: uniqueFileName.split(".")[0], // Enlever l'extension
+      resource_type: "video" as "video" | "image" | "raw" | "auto",
+    });
 
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: thumbnailKey,
-        Body: thumbnailBuffer,
-        ContentType: "image/jpeg",
-        ACL: "public-read",
-      })
-    );
+    let thumbnailUrl = "";
 
-    // Retourner les URLs
-    const videoUrl = CLOUDFRONT_URL
-      ? `${CLOUDFRONT_URL}/${fileKey}`
-      : `https://${BUCKET_NAME}.s3.amazonaws.com/${fileKey}`;
+    // Générer une miniature et la télécharger
+    try {
+      const thumbnailBuffer = await generateThumbnail(fileBuffer);
 
-    const thumbnailUrl = CLOUDFRONT_URL
-      ? `${CLOUDFRONT_URL}/${thumbnailKey}`
-      : `https://${BUCKET_NAME}.s3.amazonaws.com/${thumbnailKey}`;
+      // Télécharger la miniature vers Cloudinary
+      const thumbnailResult = await uploadBufferToCloudinary(thumbnailBuffer, {
+        folder: "thumbnails",
+        public_id: `${uniqueFileName.split(".")[0]}-thumb`,
+        resource_type: "image" as "video" | "image" | "raw" | "auto",
+      });
+
+      thumbnailUrl = thumbnailResult.secure_url;
+    } catch (error) {
+      console.warn("Erreur lors de la génération de miniature:", error);
+
+      // Utiliser une miniature générée par Cloudinary
+      thumbnailUrl = cloudinary.url(result.public_id, {
+        resource_type: "video",
+        transformation: [
+          { width: 320, height: 180, crop: "fill" },
+          { fetch_format: "auto" },
+        ],
+      });
+
+      // Log pour déboguer
+      console.log("Thumbnail URL générée par Cloudinary:", thumbnailUrl);
+    }
 
     return {
-      url: videoUrl,
-      thumbnailUrl: thumbnailUrl,
+      url: result.secure_url,
+      thumbnailUrl,
     };
   } catch (error) {
-    // En cas d'erreur de génération de miniature, retourner seulement l'URL vidéo
-    const videoUrl = CLOUDFRONT_URL
-      ? `${CLOUDFRONT_URL}/${fileKey}`
-      : `https://${BUCKET_NAME}.s3.amazonaws.com/${fileKey}`;
-
-    return {
-      url: videoUrl,
-      thumbnailUrl: "",
-    };
+    console.error("Erreur lors de l'upload vers Cloudinary:", error);
+    throw new Error("Erreur lors de l'upload vers le stockage cloud");
   }
 }
 
@@ -87,18 +149,39 @@ export async function uploadToCloudStorage(
  * Supprime un fichier du stockage cloud
  */
 export async function deleteFromCloudStorage(fileUrl: string): Promise<void> {
-  // Extraire la clé du fichier de l'URL
-  let fileKey: string;
-
-  if (fileUrl.includes(CLOUDFRONT_URL)) {
-    fileKey = fileUrl.replace(`${CLOUDFRONT_URL}/`, "");
-  } else {
-    fileKey = fileUrl.replace(`https://${BUCKET_NAME}.s3.amazonaws.com/`, "");
+  // Vérifier si Cloudinary est configuré
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    console.log("Cloudinary non configuré, simulation de la suppression");
+    return;
   }
 
-  // Supprimer le fichier de S3
-  await s3Client.send({
-    Bucket: BUCKET_NAME,
-    Key: fileKey,
-  });
+  try {
+    // Extraire l'ID public de l'URL Cloudinary
+    const urlParts = fileUrl.split("/");
+    const fileNameWithExtension = urlParts[urlParts.length - 1];
+    const fileName = fileNameWithExtension.split(".")[0];
+
+    // Déterminer le type de ressource en fonction de l'URL
+    const resourceType = fileUrl.includes("/video/")
+      ? "video"
+      : fileUrl.includes("/image/")
+      ? "image"
+      : "raw";
+
+    // Supprimer le fichier de Cloudinary
+    await cloudinary.uploader.destroy(fileName, {
+      resource_type: resourceType as "video" | "image" | "raw",
+    });
+
+    console.log(`Fichier supprimé de Cloudinary: ${fileName}`);
+  } catch (error) {
+    console.error("Erreur lors de la suppression du fichier:", error);
+    throw new Error(
+      "Erreur lors de la suppression du fichier du stockage cloud"
+    );
+  }
 }

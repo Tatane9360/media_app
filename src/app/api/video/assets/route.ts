@@ -29,7 +29,16 @@ export async function GET() {
 
     const videoAssets = await VideoAsset.find(query).sort({ createdAt: -1 });
 
-    return NextResponse.json({ videoAssets }, { status: 200 });
+    // Transformer les documents MongoDB en objets JSON avec id et _id
+    const formattedAssets = videoAssets.map((asset) => {
+      const assetObj = asset.toObject();
+      // S'assurer que les deux propriétés id et _id existent
+      assetObj.id = assetObj._id.toString();
+      assetObj._id = assetObj._id.toString();
+      return assetObj;
+    });
+
+    return NextResponse.json({ videoAssets: formattedAssets });
   } catch (error) {
     console.error("Erreur lors de la récupération des assets vidéo:", error);
     return NextResponse.json(

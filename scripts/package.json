@@ -1,0 +1,5 @@
+{
+    "scripts": {
+        "install-ffmpeg": "bash ./scripts/install-ffmpeg.sh"
+    }
+}

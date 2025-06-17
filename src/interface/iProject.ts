@@ -19,6 +19,7 @@ export interface Effect {
 // Interface pour un clip dans la timeline
 export interface Clip {
   id?: string;
+  _id?: string; // Pour compatibilité avec MongoDB
   assetId: string;
   asset?: VideoAsset; // Pour utilisation côté client
   trackIndex: number;
@@ -33,6 +34,7 @@ export interface Clip {
 // Interface pour une piste audio
 export interface AudioTrack {
   id?: string;
+  _id?: string; // Pour compatibilité avec MongoDB
   assetId?: string;
   asset?: VideoAsset; // Pour utilisation côté client
   externalUrl?: string;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { TimelineEditor } from '@/components';
+import { TimelineEditor, VideoUpload } from '@/components';
 import { Project, Timeline, VideoAsset } from '@/interface';
 
 export default function ProjectEdit() {
@@ -16,6 +16,8 @@ export default function ProjectEdit() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  
   // Charger les données du projet
   useEffect(() => {
     if (!projectId) return;
@@ -178,6 +180,13 @@ export default function ProjectEdit() {
           )}
           
           <button
+            onClick={() => setShowUploadModal(!showUploadModal)}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Ajouter des vidéos
+          </button>
+          
+          <button
             onClick={() => router.back()}
             className="bg-gray-500 text-white px-4 py-2 rounded"
           >
@@ -202,6 +211,36 @@ export default function ProjectEdit() {
           onChange={handleTimelineChange}
         />
       </div>
+      
+      {/* Modal d'upload de vidéos */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-xl font-bold">Ajouter des vidéos</h3>
+              <button 
+                onClick={() => setShowUploadModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4">
+              <VideoUpload projectId={projectId} />
+            </div>
+            <div className="p-4 border-t flex justify-end">
+              <button 
+                onClick={() => setShowUploadModal(false)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
