@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@lib";
 import { Admin } from "@models";
-import { signToken } from "@lib";
+import { signToken, connectDB } from "@lib";
 
 export async function POST(request: NextRequest) {
   try {

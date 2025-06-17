@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import connectDB from '@/lib/mongoose'
-import Admin from '@/models/Admin'
-import { signToken } from '@/lib/jwt'
+import { Admin } from '@models'
+import { signToken, connectDB } from '@lib'
 
 export async function POST(request: NextRequest) {
   try {
