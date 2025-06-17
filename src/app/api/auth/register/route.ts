@@ -1,28 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import { connectDB } from '@/lib/mongodb';
+import { Admin } from '@/models/Admin';
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
     
-    const { username, email, password } = await request.json();
+    const { email, password } = await request.json();
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Username, email, and password are required' },
+        { error: 'Email et mot de passe requis' },
         { status: 400 }
       );
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
+    const existingUser = await Admin.findOne({ email });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email or username already exists' },
+        { error: 'Un utilisateur avec cet email existe déjà' },
         { status: 400 }
       );
     }
@@ -32,8 +32,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create new user
-    const newUser = new User({
-      username,
+    const newUser = new Admin({
       email,
       password: hashedPassword
     });
@@ -41,15 +40,15 @@ export async function POST(request: NextRequest) {
     await newUser.save();
 
     return NextResponse.json(
-      { message: 'User created successfully' },
+      { message: 'Utilisateur créé avec succès' },
       { status: 201 }
     );
 
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Erreur d\'inscription:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Erreur serveur interne' },
       { status: 500 }
     );
   }
-}
+};
