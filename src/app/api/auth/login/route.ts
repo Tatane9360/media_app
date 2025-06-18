@@ -28,36 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // DEBUG: Logs détaillés
-    console.log("=== DEBUG LOGIN ===");
-    console.log("Email trouvé:", admin.email);
-    console.log("Password depuis request:", password);
-    console.log("Password depuis DB:", admin.password);
-    console.log("Type du password request:", typeof password);
-    console.log("Type du password DB:", typeof admin.password);
-    console.log("Longueur password request:", password?.length);
-    console.log("Longueur password DB:", admin.password?.length);
-    console.log("Password DB commence par $2a$ ou $2b$:", admin.password.startsWith('$2a$') || admin.password.startsWith('$2b$'));
-    
-    // Test manuel de bcrypt
-    try {
-      const testCompare = await bcrypt.compare(password, admin.password);
-      console.log("Résultat bcrypt.compare:", testCompare);
-    } catch (bcryptError) {
-      console.log("Erreur bcrypt.compare:", bcryptError);
-    }
-
-    // Test avec un hash simple pour vérifier
-    const testHash = await bcrypt.hash(password, 12);
-    console.log("Test hash du même password:", testHash);
-    const testCompareWithNewHash = await bcrypt.compare(password, testHash);
-    console.log("Test compare avec nouveau hash:", testCompareWithNewHash);
-
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, admin.password);
-    
-    console.log("Résultat final isPasswordValid:", isPasswordValid);
-    console.log("=== FIN DEBUG ===");
 
     if (!isPasswordValid) {
       return NextResponse.json(

@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { Article } from "@/models/Article";
+import { verifyToken } from "@/lib/jwt";
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+
+    const token = request.cookies.get("token")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const { title, content, image, published } = await request.json();
+
+    const article = await Article.findByIdAndUpdate(
+      params.id,
+      { title, content, image, published },
+      { new: true }
+    ).populate("author", "email");
+
+    if (!article) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ article });
+  } catch (error) {
+    console.error("Error updating article:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+
+    const token = request.cookies.get("token")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const article = await Article.findByIdAndDelete(params.id);
+
+    if (!article) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Article deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting article:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
