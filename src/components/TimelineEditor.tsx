@@ -3,6 +3,7 @@ import { Timeline, Clip, AudioTrack, Effect } from '@/interface/iProject';
 import { VideoAsset } from '@/interface/iVideoAsset';
 import { CloudinaryImage } from './CloudinaryImage';
 import { VideoThumbnail } from './VideoThumbnail';
+import VideoPreview from './VideoPreview';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -302,23 +303,26 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
         lastTime = time;
       }
       
-      const deltaTime = time - lastTime;
       lastTime = time;
       
       if (playing) {
-        // Avancer le temps actuel
-        const newTime = currentTime + deltaTime / 1000;
+        // La mise à jour du temps est maintenant gérée par le composant VideoPreview
+        // Ici, nous gérons uniquement le défilement automatique de la timeline
         
-        // Arrêter à la fin de la timeline
-        if (newTime >= timeline.duration) {
-          setCurrentTime(timeline.duration);
-          setPlaying(false);
-        } else {
-          setCurrentTime(newTime);
+        // Défilement automatique
+        if (timelineRef.current) {
+          const viewportWidth = timelineRef.current.clientWidth;
+          const cursorPosition = currentTime * pixelsPerSecond;
+          const scrollPosition = timelineRef.current.scrollLeft;
+          const rightEdge = scrollPosition + viewportWidth - 100; // Marge de 100px
           
-          // Défilement automatique
-          if (timelineRef.current) {
-            timelineRef.current.scrollLeft = newTime * pixelsPerSecond;
+          // Défilement uniquement si le curseur s'approche du bord droit
+          if (cursorPosition > rightEdge) {
+            // Calcul de la position idéale : curseur à 2/3 de la vue
+            const idealPosition = cursorPosition - (viewportWidth * 2/3);
+            // Défilement progressif
+            const newScrollPosition = scrollPosition + Math.min(10, idealPosition - scrollPosition);
+            timelineRef.current.scrollLeft = Math.max(0, newScrollPosition);
           }
         }
       }
@@ -331,7 +335,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [playing, currentTime, timeline.duration, pixelsPerSecond]);
+  }, [playing, currentTime, pixelsPerSecond]);
   
   // Fonction pour vérifier et ajuster les clips en cas de chevauchement
   const adjustClipPosition = (clips: Clip[], newClip: Clip): Clip => {
@@ -491,26 +495,130 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
     };
   }, [scale, timeline.duration, calculateTimeMarkers]);
   
+  // Fonction d'aide pour associer les assets vidéo aux clips
+  const ensureClipsHaveAssets = useCallback(() => {
+    // Si pas de clips ou pas d'assets, on ne fait rien
+    if (!timeline.clips.length || !videoAssets.length) return;
+
+    // Map pour accéder rapidement aux assets par ID
+    const assetsMap = new Map();
+    videoAssets.forEach(asset => {
+      // Normaliser les ID
+      const assetId = asset._id?.toString() || asset.id?.toString();
+      if (assetId) {
+        assetsMap.set(assetId, asset);
+      }
+    });
+
+    // Mettre à jour les clips avec les objets d'assets complets
+    let hasUpdatedClips = false;
+    const updatedClips = timeline.clips.map(clip => {
+      // Si le clip a déjà un asset complet et valide, on ne le change pas
+      if (clip.asset && clip.asset.storageUrl) {
+        return clip;
+      }
+      
+      // Normaliser l'ID du clip
+      const clipAssetId = clip.assetId?.toString();
+      if (!clipAssetId) return clip;
+      
+      // Chercher l'asset correspondant
+      const matchingAsset = assetsMap.get(clipAssetId);
+      if (matchingAsset) {
+        hasUpdatedClips = true;
+        return { ...clip, asset: matchingAsset };
+      }
+      
+      return clip;
+    });
+
+    // Si des clips ont été mis à jour, mettre à jour la timeline
+    if (hasUpdatedClips) {
+      console.log("Mise à jour des assets pour les clips de la timeline");
+      onChange({
+        ...timeline,
+        clips: updatedClips
+      });
+    }
+  }, [timeline, videoAssets, onChange]);
+  
+  // Exécuter l'association des assets lors du chargement initial et des mises à jour
+  useEffect(() => {
+    ensureClipsHaveAssets();
+  }, [ensureClipsHaveAssets]);
+  
   return (
     <div className="flex flex-col w-full h-full">
       {/* Prévisualisation vidéo */}
       <div className="w-full bg-black aspect-video relative">
-        {/* Simuler une prévisualisation */}
-        <div className="absolute inset-0 flex items-center justify-center text-white">
-          Prévisualisation à {currentTime.toFixed(2)}s
-        </div>
+        <VideoPreview
+          clips={timeline.clips}
+          audioTracks={timeline.audioTracks}
+          currentTime={currentTime}
+          playing={playing}
+          onTimeUpdate={(time) => setCurrentTime(time)}
+          onEnded={() => setPlaying(false)}
+        />
         
         {/* Contrôles de lecture */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex items-center">
-          <button 
-            onClick={togglePlayback}
-            className="bg-white text-black rounded-full w-8 h-8 flex items-center justify-center mr-2"
-          >
-            {playing ? '❚❚' : '▶'}
-          </button>
+        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex flex-col z-10">
+          {/* Curseur de temps */}
+          <div className="w-full mb-2 px-2">
+            <input
+              type="range"
+              min={0}
+              max={timeline.duration}
+              step={0.01}
+              value={currentTime}
+              onChange={(e) => setCurrentTime(parseFloat(e.target.value))}
+              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-red-500"
+            />
+          </div>
           
-          <div className="text-white">
-            {formatTime(currentTime)} / {formatTime(timeline.duration)}
+          {/* Boutons de contrôle */}
+          <div className="flex items-center">
+            <button 
+              onClick={() => setCurrentTime(Math.max(0, currentTime - 5))}
+              className="bg-gray-700 text-white rounded px-2 py-1 mr-2 text-xs"
+              title="Reculer de 5 secondes"
+            >
+              -5s
+            </button>
+            
+            <button 
+              onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
+              className="bg-gray-700 text-white rounded px-2 py-1 mr-2 text-xs"
+              title="Reculer d'une seconde"
+            >
+              -1s
+            </button>
+            
+            <button 
+              onClick={togglePlayback}
+              className="bg-white text-black rounded-full w-8 h-8 flex items-center justify-center mx-2"
+            >
+              {playing ? '❚❚' : '▶'}
+            </button>
+            
+            <button 
+              onClick={() => setCurrentTime(Math.min(timeline.duration, currentTime + 1))}
+              className="bg-gray-700 text-white rounded px-2 py-1 ml-2 text-xs"
+              title="Avancer d'une seconde"
+            >
+              +1s
+            </button>
+            
+            <button 
+              onClick={() => setCurrentTime(Math.min(timeline.duration, currentTime + 5))}
+              className="bg-gray-700 text-white rounded px-2 py-1 ml-2 text-xs"
+              title="Avancer de 5 secondes"
+            >
+              +5s
+            </button>
+            
+            <div className="text-white ml-4">
+              {formatTime(currentTime)} / {formatTime(timeline.duration)}
+            </div>
           </div>
         </div>
       </div>
