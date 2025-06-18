@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { TimelineEditor, VideoUpload } from '@/components';
-import { Project, Timeline, VideoAsset } from '@/interface';
+import { Project, Timeline, VideoAsset, Clip } from '@/interface';
 
 export default function ProjectEdit() {
   const router = useRouter();
@@ -64,19 +64,32 @@ export default function ProjectEdit() {
             }
           });
           
-          // Associer les assets aux clips
-          data.project.timeline.clips = data.project.timeline.clips.map(clip => {
-            if (!clip.asset && clip.assetId) {
-              const assetId = clip.assetId.toString();
+          // Associer les assets aux clips et s'assurer qu'ils ont tous un id
+          data.project.timeline.clips = data.project.timeline.clips.map((clip: Clip, index: number) => {
+            // Créer une copie du clip pour éviter de modifier l'original directement
+            const updatedClip = { ...clip };
+            
+            // S'assurer que chaque clip a un id
+            if (!updatedClip.id && updatedClip._id) {
+              updatedClip.id = updatedClip._id.toString();
+            } else if (!updatedClip.id && !updatedClip._id) {
+              // Si aucun id n'est présent, en générer un
+              updatedClip.id = `clip-${Date.now()}-${index}`;
+            }
+            
+            // Associer l'asset si nécessaire
+            if (!updatedClip.asset && updatedClip.assetId) {
+              const assetId = updatedClip.assetId.toString();
               const asset = assetsMap.get(assetId);
               if (asset) {
-                return { ...clip, asset };
+                return { ...updatedClip, asset };
               }
             }
-            return clip;
+            return updatedClip;
           });
           
           console.log("Clips après association:", data.project.timeline.clips.length);
+          console.log("Exemple de clip:", data.project.timeline.clips[0]);
         }
         
         setProject(data.project);

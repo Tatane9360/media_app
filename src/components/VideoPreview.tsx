@@ -37,6 +37,20 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   
   // Trouver le clip actif en fonction du temps actuel
   useEffect(() => {
+    // Vérifier si nous avons des clips valides
+    if (clips.length === 0) {
+      console.log("Aucun clip dans la timeline");
+      setActiveClip(null);
+      setIsReady(false);
+      return;
+    }
+    
+    // Debug pour voir l'état des clips
+    console.log(`VideoPreview: ${clips.length} clips disponibles`);
+    clips.forEach((clip, index) => {
+      console.log(`Clip ${index}: ID=${clip.id}, startTime=${clip.startTime}, endTime=${clip.endTime}, asset=${clip.asset ? 'présent' : 'manquant'}`);
+    });
+    
     // Chercher le clip qui contient le temps actuel
     const clip = clips.find(
       c => currentTime >= c.startTime && currentTime < c.endTime
@@ -49,6 +63,14 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         console.log("Changement de clip actif:", clip.id, 
           "Asset:", clip.asset ? "présent" : "manquant", 
           "AssetId:", clip.assetId);
+      } else {
+        console.log("Aucun clip actif pour le temps actuel:", currentTime);
+        // Si aucun clip n'est trouvé mais que nous avons des clips, sélectionner le premier
+        if (clips.length > 0 && currentTime < clips[0].startTime) {
+          console.log("Sélection du premier clip par défaut");
+          setActiveClip(clips[0]);
+          return;
+        }
       }
       
       setActiveClip(clip || null);

@@ -46,9 +46,22 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   
   // Fonction d'aide pour associer les assets vidéo aux clips
   const ensureClipsHaveAssets = useCallback(() => {
-    // Si pas de clips ou pas d'assets, on ne fait rien
-    if (!timeline.clips.length || !videoAssets.length) return;
+    // Si pas de clips, on ne fait rien
+    if (!timeline.clips.length) {
+      console.log("Aucun clip dans la timeline, rien à associer");
+      return;
+    }
+    
+    // Si pas d'assets, loguer l'erreur mais continuer
+    if (!videoAssets.length) {
+      console.warn("Aucun asset vidéo disponible, impossible d'associer les clips");
+      return;
+    }
 
+    console.log("=== Début de l'association des assets aux clips ===");
+    console.log(`Assets disponibles: ${videoAssets.length}`);
+    console.log(`Clips à associer: ${timeline.clips.length}`);
+    
     // Map pour accéder rapidement aux assets par ID
     const assetsMap = new Map();
     videoAssets.forEach(asset => {
@@ -58,33 +71,38 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         assetsMap.set(assetId, asset);
       }
     });
-
-    // Debug log
-    console.log("Assets disponibles:", videoAssets.length);
-    console.log("Premier asset:", videoAssets[0]);
-    console.log("Clips à associer:", timeline.clips.length);
     
     // Vérifier si des clips ont besoin d'être mis à jour
     let hasUpdatedClips = false;
-    const updatedClips = timeline.clips.map(clip => {
+    const updatedClips = timeline.clips.map((clip, index) => {
       // Normaliser l'ID du clip (gérer à la fois string et ObjectId)
       const clipAssetId = clip.assetId?.toString();
       
-      // Debug
-      if (!clipAssetId) {
-        console.warn("Clip sans assetId:", clip);
-      }
-      
       // Si pas d'assetId, on ne peut pas associer
-      if (!clipAssetId) return clip;
+      if (!clipAssetId) {
+        console.warn(`Clip ${index} sans assetId:`, clip);
+        return clip;
+      }
       
       // Si le clip a déjà un asset valide, vérifier qu'il est complet
       if (clip.asset) {
         // Si l'asset a une URL de stockage, il est probablement valide
         if (clip.asset.storageUrl) {
+          // Quand même vérifier si nous avons un asset plus récent/complet
+          const freshAsset = assetsMap.get(clipAssetId);
+          if (freshAsset && freshAsset.storageUrl && (
+              !clip.asset.metadata || 
+              !clip.asset.duration || 
+              freshAsset.updatedAt > clip.asset.updatedAt
+            )) {
+            console.log(`Mise à jour de l'asset pour le clip ${clip.id} (${clipAssetId})`);
+            hasUpdatedClips = true;
+            return { ...clip, asset: freshAsset };
+          }
+          
           return clip;
         }
-        // Sinon, essayer de le remplacer par un asset complet
+        // Sinon, l'asset est incomplet, essayer de le remplacer
       }
       
       // Chercher l'asset correspondant
@@ -94,7 +112,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         console.log(`Asset trouvé pour le clip ${clip.id}, assetId: ${clipAssetId}`);
         return { ...clip, asset: matchingAsset };
       } else {
-        console.warn(`Aucun asset trouvé pour l'ID: ${clipAssetId}`);
+        console.warn(`⚠️ Aucun asset trouvé pour l'ID: ${clipAssetId}`);
       }
       
       return clip;
@@ -102,7 +120,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
 
     // Si des clips ont été mis à jour, mettre à jour la timeline
     if (hasUpdatedClips) {
-      console.log("Mise à jour des assets pour les clips de la timeline");
+      console.log(`✅ Mise à jour réussie de ${updatedClips.filter(c => c.asset).length}/${updatedClips.length} clips`);
       onChange({
         ...timeline,
         clips: updatedClips
@@ -110,12 +128,50 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     } else {
       console.log("Aucun clip n'a besoin d'être mis à jour");
     }
+    
+    console.log("=== Fin de l'association des assets aux clips ===");
   }, [timeline, videoAssets, onChange]);
   
   // Exécuter l'association des assets lors du chargement initial et des mises à jour
   useEffect(() => {
-    ensureClipsHaveAssets();
-  }, [ensureClipsHaveAssets]);
+    // Assurer que tous les clips ont un id valide
+    const ensureClipsHaveIds = () => {
+      if (!timeline.clips.length) return false;
+      
+      let needsUpdate = false;
+      const updatedClips = timeline.clips.map((clip, index) => {
+        // Si le clip n'a pas d'ID, utiliser _id ou générer un nouvel ID
+        if (!clip.id) {
+          needsUpdate = true;
+          return {
+            ...clip,
+            id: clip._id?.toString() || `clip-${Date.now()}-${index}`
+          };
+        }
+        return clip;
+      });
+      
+      if (needsUpdate) {
+        console.log("Mise à jour des IDs de clips manquants");
+        onChange({
+          ...timeline,
+          clips: updatedClips
+        });
+        return true;
+      }
+      
+      return false;
+    };
+    
+    // D'abord s'assurer que tous les clips ont un ID
+    const idsUpdated = ensureClipsHaveIds();
+    
+    // Ensuite associer les assets seulement si les IDs n'ont pas été mis à jour
+    // (pour éviter de déclencher deux mises à jour consécutives)
+    if (!idsUpdated) {
+      ensureClipsHaveAssets();
+    }
+  }, [ensureClipsHaveAssets, timeline, onChange]);
   
   // Gestion du défilement de la timeline
   const handleTimelineScroll = () => {
@@ -132,7 +188,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   };
   
   // Rechercher le clip sélectionné
-  const selectedClip = timeline.clips.find(clip => clip.id === selectedClipId);
+  const selectedClip = timeline.clips.find(clip => 
+    (clip.id === selectedClipId) || (clip._id?.toString() === selectedClipId)
+  );
 
   // Ajouter un clip à la timeline
   const addClip = (asset: VideoAsset, trackIndex = 0) => {
@@ -171,19 +229,31 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   
   // Modifier un clip
   const updateClip = (updatedClip: Clip) => {
-    const newClips = timeline.clips.map(clip => 
-      clip.id === updatedClip.id ? updatedClip : clip
-    );
+    console.log(`Mise à jour du clip ${updatedClip.id}:`, updatedClip);
+    
+    // Vérifier que le clip existe
+    const existingClipIndex = timeline.clips.findIndex(clip => clip.id === updatedClip.id);
+    
+    if (existingClipIndex === -1) {
+      console.error(`Clip introuvable: ${updatedClip.id}`);
+      return;
+    }
+    
+    // Créer un nouveau tableau de clips avec la mise à jour
+    const newClips = [...timeline.clips];
+    newClips[existingClipIndex] = updatedClip;
     
     // Recalculer la durée totale de la timeline
     const maxEndTime = Math.max(...newClips.map(clip => clip.endTime));
     
+    // Créer une nouvelle timeline avec les clips mis à jour
     const newTimeline = {
       ...timeline,
       clips: newClips,
       duration: Math.max(timeline.duration, maxEndTime)
     };
     
+    // Appliquer les changements
     onChange(newTimeline);
   };
   
@@ -262,7 +332,8 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     setDraggedClipOffsetX(offsetX);
     
     // Définir les données de transfert (obligatoire pour le drag & drop)
-    e.dataTransfer.setData('text/plain', clip.id || '');
+    const clipId = clip.id || clip._id?.toString() || '';
+    e.dataTransfer.setData('text/plain', clipId);
     e.dataTransfer.effectAllowed = 'move';
     
     // Appliquer une classe visuelle
@@ -325,6 +396,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       const clipDuration = draggedClip.endTime - draggedClip.startTime;
       const newStartTime = Math.max(0, (x - draggedClipOffsetX) / pixelsPerSecond);
       
+      console.log("Déplacement du clip:", draggedClip.id);
+      console.log("Nouvelle position:", newStartTime);
+      
+      // Créer une copie mise à jour du clip
       let updatedClip: Clip = {
         ...draggedClip,
         trackIndex,
@@ -332,14 +407,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         endTime: newStartTime + clipDuration
       };
       
-      // Ajuster la position pour éviter les chevauchements
-      updatedClip = adjustClipPosition(
-        timeline.clips.filter(c => c.id !== draggedClip.id), 
-        updatedClip
-      );
+      // Ajuster la position pour éviter les chevauchements UNIQUEMENT avec les autres clips
+      // en excluant le clip en cours de déplacement
+      const clipId = draggedClip.id || draggedClip._id?.toString();
+      const otherClips = timeline.clips.filter(c => {
+        const cId = c.id || c._id?.toString();
+        return cId !== clipId;
+      });
+      console.log(`Vérification des chevauchements avec ${otherClips.length} autres clips`);
       
+      updatedClip = adjustClipPosition(otherClips, updatedClip);
+      
+      // Mettre à jour UNIQUEMENT le clip déplacé, pas tous les clips
       updateClip(updatedClip);
-      setSelectedClipId(updatedClip.id as string);
+      setSelectedClipId(updatedClip.id || updatedClip._id?.toString() || null);
       setDraggedClip(null);
     }
     else if (draggedAsset) {
@@ -431,28 +512,48 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     // Si aucun clip sur cette piste, pas besoin d'ajustement
     if (clipsOnTrack.length === 0) {
+      console.log("Aucun autre clip sur cette piste, pas d'ajustement nécessaire");
       return newClip;
     }
     
+    console.log(`Vérification des chevauchements sur la piste ${newClip.trackIndex} avec ${clipsOnTrack.length} clips`);
+    
     // Vérifier les chevauchements
-    let adjustedClip = { ...newClip };
+    const adjustedClip = { ...newClip };
     let overlap = false;
+    let iterations = 0;
+    const maxIterations = 10; // Limite pour éviter les boucles infinies
     
     do {
       overlap = false;
+      iterations++;
       
       for (const clip of clipsOnTrack) {
+        // Ignorer si c'est le même clip (bien que cela ne devrait pas se produire)
+        if (clip.id === newClip.id) continue;
+        
         // Vérifier si les intervalles se chevauchent
         if (
           adjustedClip.startTime < clip.endTime && 
           adjustedClip.endTime > clip.startTime
         ) {
+          console.log(`Chevauchement détecté avec clip ${clip.id} (${clip.startTime} - ${clip.endTime})`);
+          
           // Placer le clip après celui qui chevauche
           adjustedClip.startTime = clip.endTime;
           adjustedClip.endTime = adjustedClip.startTime + (newClip.endTime - newClip.startTime);
+          
+          console.log(`Nouvelle position: ${adjustedClip.startTime} - ${adjustedClip.endTime}`);
+          
           overlap = true;
           break;
         }
+      }
+      
+      // Éviter les boucles infinies
+      if (iterations >= maxIterations) {
+        console.warn("Nombre maximum d'itérations atteint pour l'ajustement de position");
+        break;
       }
     } while (overlap);
     
@@ -657,27 +758,29 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               {timeline.clips
                 .filter(clip => clip.trackIndex === trackIndex)
                 .map((clip, index) => {
-                  // Utiliser un identifiant de secours si clip.id est undefined
-                  const clipKey = clip.id || `fallback-${trackIndex}-${index}`;
+                  // Utiliser un identifiant de secours si ni clip.id ni clip._id n'est défini
+                  const clipKey = clip.id || clip._id?.toString() || `fallback-${trackIndex}-${index}`;
+                  const isSelected = (clip.id === selectedClipId) || (clip._id?.toString() === selectedClipId);
                   
                   return (
                     <div
                       key={clipKey}
                       className={`absolute top-1 bottom-1 rounded overflow-hidden cursor-grab ${
-                        clip.id === selectedClipId ? 'ring-2 ring-blue-500' : ''
+                        isSelected ? 'ring-2 ring-blue-500' : ''
                       }`}
                       style={{
                         left: `${clip.startTime * pixelsPerSecond}px`,
                         width: `${(clip.endTime - clip.startTime) * pixelsPerSecond}px`,
-                        backgroundColor: clip.id === selectedClipId ? 'rgba(59, 130, 246, 0.5)' : 'rgba(75, 85, 99, 0.5)'
+                        backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.5)' : 'rgba(75, 85, 99, 0.5)'
                       }}
                       onClick={(e) => {
                         // Empêcher la propagation pour éviter les sélections multiples
                         e.stopPropagation();
-                        // Vérifier que le clip a un ID valide avant de le sélectionner
-                        if (clip.id) {
-                          console.log(`Sélection du clip ${clip.id}`);
-                          setSelectedClipId(clip.id);
+                        // Normaliser l'ID du clip (utiliser _id comme fallback)
+                        const clipId = clip.id || clip._id?.toString();
+                        if (clipId) {
+                          console.log(`Sélection du clip ${clipId}`);
+                          setSelectedClipId(clipId);
                         } else {
                           console.warn("Tentative de sélection d'un clip sans ID");
                         }
