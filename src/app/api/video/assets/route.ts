@@ -35,8 +35,16 @@ export async function GET() {
       // S'assurer que les deux propriétés id et _id existent
       assetObj.id = assetObj._id.toString();
       assetObj._id = assetObj._id.toString();
+
+      // Vérifier la présence et la validité de l'URL de stockage
+      if (!assetObj.storageUrl) {
+        console.warn(`Asset ${assetObj.id} n'a pas d'URL de stockage valide`);
+      }
+
       return assetObj;
     });
+
+    console.log(`Retour de ${formattedAssets.length} assets vidéo`);
 
     return NextResponse.json({ videoAssets: formattedAssets });
   } catch (error) {

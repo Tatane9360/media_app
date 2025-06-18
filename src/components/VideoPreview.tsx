@@ -42,7 +42,15 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       c => currentTime >= c.startTime && currentTime < c.endTime
     );
     
+    // Si le clip trouvé est différent de l'actif ou si on passe à null
     if (clip !== activeClip) {
+      // Debug log
+      if (clip) {
+        console.log("Changement de clip actif:", clip.id, 
+          "Asset:", clip.asset ? "présent" : "manquant", 
+          "AssetId:", clip.assetId);
+      }
+      
       setActiveClip(clip || null);
       setIsReady(false);
     }
@@ -226,11 +234,24 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       <div className="w-full h-full flex flex-col items-center justify-center bg-black text-white">
         <div className="text-red-500 mb-4 text-xl">Ressource vidéo non disponible</div>
         <div className="text-sm text-gray-400 max-w-md text-center px-4">
-          L&apos;asset vidéo de ce clip est manquant ou corrompu. Assurez-vous que tous les assets sont correctement chargés 
-          et que les références sont valides. Essayez de recharger la page ou de réajouter ce clip à la timeline.
+          L&apos;asset vidéo de ce clip est manquant ou corrompu. 
+          <br /><br />
+          <strong>Détails techniques :</strong>
+          <pre className="mt-2 bg-gray-800 p-2 rounded text-xs overflow-auto max-w-full">
+            AssetID: {activeClip.assetId || "Non défini"}
+            <br />
+            ClipID: {activeClip.id || "Non défini"}
+            <br />
+            Asset: {activeClip.asset ? JSON.stringify(activeClip.asset, null, 2).substring(0, 150) + "..." : "null"}
+          </pre>
         </div>
-        <div className="mt-4 text-xs text-gray-500">
-          ID Asset: {activeClip.assetId || "Non spécifié"}
+        <div className="mt-6">
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Recharger la page
+          </button>
         </div>
       </div>
     );

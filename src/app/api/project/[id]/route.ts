@@ -37,8 +37,42 @@ export async function GET(
     let project;
 
     if (isValidMongoId) {
-      // Si c'est un ID MongoDB valide, on utilise findById
-      project = await Project.findById(id).populate("videoAssets");
+      // Si c'est un ID MongoDB valide, on utilise findById et on peuple les assets vidéo
+      project = await Project.findById(id).populate({
+        path: "videoAssets",
+        model: "VideoAsset",
+      });
+
+      // Assurons-nous que chaque clip a son asset vidéo associé
+      if (
+        project &&
+        project.timeline &&
+        project.timeline.clips &&
+        project.timeline.clips.length > 0
+      ) {
+        const videoAssetsMap = new Map();
+
+        // Créer un map des assets vidéo pour un accès rapide
+        if (project.videoAssets && Array.isArray(project.videoAssets)) {
+          project.videoAssets.forEach((asset) => {
+            if (asset._id) {
+              videoAssetsMap.set(asset._id.toString(), asset);
+            }
+          });
+        }
+
+        // Associer l'asset complet à chaque clip
+        project.timeline.clips = project.timeline.clips.map((clip) => {
+          if (clip.assetId && !clip.asset) {
+            const assetId = clip.assetId.toString();
+            const asset = videoAssetsMap.get(assetId);
+            if (asset) {
+              clip.asset = asset;
+            }
+          }
+          return clip;
+        });
+      }
     } else {
       // Sinon, on peut chercher par un autre champ comme un slug ou un identifiant personnalisé
       // Par exemple : project = await Project.findOne({ customId: id }).populate("videoAssets");

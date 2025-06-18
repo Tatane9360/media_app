@@ -42,7 +42,6 @@ export default function ProjectEdit() {
         }
         
         const data = await response.json();
-        setProject(data.project);
         
         // Récupérer les assets vidéo
         const assetsResponse = await fetch('/api/video/assets');
@@ -51,7 +50,37 @@ export default function ProjectEdit() {
         }
         
         const assetsData = await assetsResponse.json();
-        setVideoAssets(assetsData.videoAssets);
+        const assets = assetsData.videoAssets;
+        
+        // Pré-associer les assets aux clips de la timeline si nécessaire
+        if (data.project && data.project.timeline && data.project.timeline.clips) {
+          const assetsMap = new Map();
+          
+          // Créer un map pour un accès rapide
+          assets.forEach(asset => {
+            const assetId = asset._id?.toString() || asset.id?.toString();
+            if (assetId) {
+              assetsMap.set(assetId, asset);
+            }
+          });
+          
+          // Associer les assets aux clips
+          data.project.timeline.clips = data.project.timeline.clips.map(clip => {
+            if (!clip.asset && clip.assetId) {
+              const assetId = clip.assetId.toString();
+              const asset = assetsMap.get(assetId);
+              if (asset) {
+                return { ...clip, asset };
+              }
+            }
+            return clip;
+          });
+          
+          console.log("Clips après association:", data.project.timeline.clips.length);
+        }
+        
+        setProject(data.project);
+        setVideoAssets(assets);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue');
       } finally {
