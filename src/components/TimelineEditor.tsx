@@ -608,6 +608,87 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
   };
   
+  // Fonction pour transformer les URLs Cloudinary pour obtenir des thumbnails optimisées
+  const getCloudinaryThumbnail = (url: string): string => {
+    if (!url || !url.includes('cloudinary.com')) {
+      console.log("URL non Cloudinary, retour de l'URL originale:", url);
+      return url;
+    }
+    
+    console.log("=== TRANSFORMATION D'URL ===");
+    console.log("URL originale:", url);
+    
+    try {
+      // Approche simplifiée: substitution directe de la structure d'URL
+      // Format attendu: https://res.cloudinary.com/dexgnx9ki/video/upload/v1750192710/uploads/1750192708755-Enregistrement_de_l_e_cran_2025-06-17_a__22.mov
+      // Format cible: https://res.cloudinary.com/dexgnx9ki/video/upload/c_fill,h_180,w_320/f_auto/v1/uploads/1750192708755-Enregistrement_de_l_e_cran_2025-06-17_a__22?_a=BAMAAARi0
+      
+      // 1. Extraire le nom du cloud
+      const cloudNameMatch = url.match(/https:\/\/res\.cloudinary\.com\/([^\/]+)\//);
+      if (!cloudNameMatch) {
+        console.warn("Impossible d'extraire le nom du cloud de l'URL:", url);
+        return url;
+      }
+      const cloudName = cloudNameMatch[1]; // ex: dexgnx9ki
+      
+      // 2. Rechercher le motif /v\d+/ dans l'URL
+      const versionMatch = url.match(/\/v\d+\//);
+      if (!versionMatch) {
+        console.warn("Motif de version non trouvé dans l'URL:", url);
+        return url;
+      }
+      
+      // 3. Trouver l'emplacement du motif de version
+      const versionIndex = url.indexOf(versionMatch[0]);
+      const afterVersionIndex = versionIndex + versionMatch[0].length;
+      
+      // 4. Extraire le chemin après la version
+      const pathAfterVersion = url.substring(afterVersionIndex);
+      
+      // 5. Enlever l'extension si présente
+      let cleanPath = pathAfterVersion;
+      if (cleanPath.includes('.')) {
+        cleanPath = cleanPath.substring(0, cleanPath.lastIndexOf('.'));
+      }
+      
+      console.log("Composants extraits:", { 
+        cloudName, 
+        pathAfterVersion, 
+        cleanPath 
+      });
+      
+      // 6. Construire la nouvelle URL
+      const newUrl = `https://res.cloudinary.com/${cloudName}/video/upload/c_fill,h_180,w_320/f_auto/v1/${cleanPath}?_a=BAMAAARi0`;
+      
+      console.log("URL transformée:", newUrl);
+      console.log("=== FIN DE TRANSFORMATION ===");
+      
+      return newUrl;
+    } catch (error) {
+      console.error("Erreur lors de la transformation de l'URL:", error);
+      return url;
+    }
+  };
+  
+  // Debug: vérification des clips chargés initialement
+  useEffect(() => {
+    if (timeline.clips.length > 0) {
+      console.log("=== VÉRIFICATION DES CLIPS INITIAUX ===");
+      console.log(`${timeline.clips.length} clips chargés`);
+      
+      timeline.clips.forEach((clip, index) => {
+        if (clip.asset && clip.asset.storageUrl) {
+          console.log(`Clip ${index} - URL originale:`, clip.asset.storageUrl);
+          console.log(`Clip ${index} - URL transformée:`, getCloudinaryThumbnail(clip.asset.storageUrl));
+        } else {
+          console.log(`Clip ${index} - Pas d'URL disponible`);
+        }
+      });
+      
+      console.log("=== FIN DE VÉRIFICATION ===");
+    }
+  }, [timeline.clips]);
+  
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">
       {/* Prévisualisation vidéo */}
@@ -791,11 +872,15 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                     >
                       {/* Affichage du contenu du clip */}
                       {clip.asset && clip.asset.storageUrl ? (
-                        <div className="w-full h-full relative">
+                        <div className="w-full h-full relative" 
+                          onLoad={() => console.log("Rendu du clip avec URL:", clip.asset?.storageUrl)}>
                           <img 
-                            src={clip.asset.storageUrl} 
+                            src={getCloudinaryThumbnail(clip.asset.storageUrl)} 
                             alt={`Clip ${clip.id || index}`}
                             className="w-full h-full object-cover"
+                            onLoad={(e) => {
+                              console.log("Image chargée:", (e.target as HTMLImageElement).src);
+                            }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 truncate">
                             {clip.asset.originalName || "Sans titre"}
