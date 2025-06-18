@@ -1,54 +1,59 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Admin {
-  id: string
-  email: string
+  id: string;
+  email: string;
 }
 
 export default function AdminDashboard() {
-  const [admin, setAdmin] = useState<Admin | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    checkAuth()
-  }, [])
+    checkAuth();
+  }, []);
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/auth/me')
-      const data = await res.json()
+      const res = await fetch("/api/auth/me");
 
-      if (data.success) {
-        setAdmin(data.admin)
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.admin) {
+          setAdmin(data.admin);
+        } else {
+          router.push("/login");
+        }
       } else {
-        router.push('/login')
+        router.push("/login");
       }
     } catch (error) {
-      router.push('/login')
+      console.error("Auth check error:", error);
+      router.push("/login");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.push('/login')
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
     } catch (error) {
-      console.error('Logout error:', error)
+      console.error("Logout error:", error);
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -73,5 +78,5 @@ export default function AdminDashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }

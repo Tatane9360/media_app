@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server'
 
 export async function POST() {
-  const response = NextResponse.json({
-    success: true,
-    message: 'Logged out successfully'
-  })
+  try {
+    const response = NextResponse.json({
+      message: 'Déconnexion réussie'
+    })
 
-  response.cookies.set('token', '', {
-    httpOnly: true,
-    path: '/',
-    maxAge: 0,
-    sameSite: 'strict'
-  })
+    // Clear the token cookie
+    response.cookies.set('token', '', {
+      httpOnly: true,
+      path: '/',
+      maxAge: 0,
+      sameSite: 'strict'
+    })
 
-  return response
+    return response
+  } catch (error) {
+    console.error('Erreur de déconnexion:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur interne' },
+      { status: 500 }
+    )
+  }
 }
