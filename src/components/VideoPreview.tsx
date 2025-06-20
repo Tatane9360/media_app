@@ -169,8 +169,19 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       // Calculer le temps global en fonction de la position dans le clip
       const currentVideoTime = videoRef.current.currentTime;
       const trimStart = activeClip.trimStart || 0;
-      const clipTime = currentVideoTime - trimStart;
+      
+      // Le temps dans le clip est le temps actuel vidéo moins le trimStart
+      // Mais il faut s'assurer que ce temps n'est pas négatif (pas avant le trimStart)
+      const clipTime = Math.max(0, currentVideoTime - trimStart);
       const globalTime = activeClip.startTime + clipTime;
+      
+      // Log pour debug avec vérification pour limiter les logs
+      if (Math.floor(currentVideoTime * 10) % 10 === 0) { // Log toutes les 0.1s
+        console.log(`Position vidéo: ${currentVideoTime.toFixed(3)}s, ` +
+                    `trimStart: ${trimStart.toFixed(3)}s, ` + 
+                    `clipTime: ${clipTime.toFixed(3)}s, ` +
+                    `globalTime: ${globalTime.toFixed(3)}s`);
+      }
       
       // Mettre à jour le temps continu sans déclencher un rendu
       lastTimeUpdateRef.current = Date.now();
@@ -180,11 +191,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       // Vérifier si on a atteint la fin du clip
       const clipDuration = activeClip.endTime - activeClip.startTime;
       const trimEnd = activeClip.trimEnd || 0;
-      const adjustedClipDuration = clipDuration - trimEnd;
+      const adjustedClipDuration = clipDuration;
       
-      // Utiliser une marge de tolérance plus grande pour détecter la fin du clip
-      // Certains clips peuvent avoir besoin d'une détection plus anticipée
-      if (clipTime >= adjustedClipDuration - 0.2) { // 200ms avant la fin réelle (augmenté de 0.05 à 0.2)
+      // Calcul précis du temps restant dans le clip en tenant compte du trimming
+      const remainingClipTime = adjustedClipDuration - clipTime;
+      
+      // Ne déclencher la fin que si on est vraiment proche de la fin du clip visible
+      if (remainingClipTime <= 0.1) { // Réduit à 0.1s pour être encore moins sensible
         // Trouver le prochain clip (avec ou sans gap)
         const timeAfterCurrentClip = activeClip.endTime + 0.001; // Décalage de 1ms précisément
         
@@ -199,7 +212,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           if (nextClip) {
             // S'il y a un écart entre les clips, passons au moment juste après le clip actuel
             // pour afficher l'écran noir dans l'intervalle, mais maintenir la lecture
-            console.log(`Fin du clip à ${activeClip.endTime}s, avance de 1ms à ${timeAfterCurrentClip}s`);
+            console.log(`Fin du clip à ${activeClip.endTime}s, avance de 1ms à ${timeAfterCurrentClip}s (reste: ${remainingClipTime.toFixed(3)}s)`);
             onTimeUpdate(timeAfterCurrentClip);
             
             // TOUJOURS assurer que la lecture continue pendant la transition
@@ -270,9 +283,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     }
     
     // Chercher le clip qui contient le temps actuel
-    const newActiveClip = getActiveClipAtTime(currentTime, sortedClips);
-    
-    // Si le clip trouvé est différent de l'actif
+    const newActiveClip = getActiveClipAtTime(currentTime, sortedClips);        // Si le clip trouvé est différent de l'actif
     if (newActiveClip !== activeClip) {
       console.log(`Changement de clip actif à ${currentTime}s:`, 
         newActiveClip ? `ID=${newActiveClip.id}` : 'Écran noir - continuité de lecture');
@@ -294,6 +305,32 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       } else {
         // Mettre à jour le clip actif
         setActiveClip(newActiveClip);
+        
+        // Afficher les informations sur le trimming du clip
+        const trimStart = newActiveClip.trimStart || 0;
+        const trimEnd = newActiveClip.trimEnd || 0;
+        const clipDuration = newActiveClip.endTime - newActiveClip.startTime;
+        const assetDuration = newActiveClip.asset?.duration || (trimStart + clipDuration + trimEnd);
+        
+        console.log(`Clip sélectionné: ID=${newActiveClip.id}, ` +
+                   `trimStart=${trimStart.toFixed(3)}s, trimEnd=${trimEnd.toFixed(3)}s, ` +
+                   `durée visible=${clipDuration.toFixed(3)}s, durée totale=${assetDuration.toFixed(3)}s, ` +
+                   `position dans timeline=${newActiveClip.startTime.toFixed(3)}s à ${newActiveClip.endTime.toFixed(3)}s`);
+        
+        // Vérification supplémentaire pour éviter les positions négatives
+        if (currentTime < newActiveClip.startTime) {
+          console.log(`⚠️ Correction: currentTime (${currentTime.toFixed(3)}s) < clip.startTime (${newActiveClip.startTime.toFixed(3)}s)`);
+          // Forcer le temps au début du clip
+          setTimeout(() => onTimeUpdate(newActiveClip.startTime), 10);
+        }
+        
+        // Si nous sommes près de la fin du clip, avancer légèrement pour éviter de sauter immédiatement
+        const timeFromEnd = newActiveClip.endTime - currentTime;
+        if (timeFromEnd < 0.2 && timeFromEnd > 0) {
+          console.log(`⚠️ Correction: trop près de la fin du clip (${timeFromEnd.toFixed(3)}s restantes)`);
+          // Reculer légèrement pour éviter le déclenchement immédiat de la fin
+          setTimeout(() => onTimeUpdate(newActiveClip.endTime - 0.5), 10);
+        }
         
         // Réinitialiser l'état de chargement seulement si on change vraiment de clip
         if (newActiveClip && (!activeClip || newActiveClip.id !== activeClip.id)) {
@@ -345,15 +382,31 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     
     // Mettre à jour la position dans la vidéo active
     if (videoRef.current && activeClip) {
-      // Calculer la position dans le clip
-      const clipPosition = currentTime - activeClip.startTime + (activeClip.trimStart || 0);
+      // Calculer la position dans le clip (temps global - temps de début du clip)
+      const clipPosition = Math.max(0, currentTime - activeClip.startTime);
+      const trimStart = activeClip.trimStart || 0;
+      
+      // Pour positionner correctement la vidéo, on doit ajouter le trimStart
+      // car la partie trimmée au début reste présente dans la vidéo source
+      const videoPosition = clipPosition + trimStart;
+      
+      // S'assurer que la position ne dépasse pas la durée réelle de la vidéo
+      // en tenant compte du trimming à la fin
+      const trimEnd = activeClip.trimEnd || 0;
+      const assetDuration = activeClip.asset?.duration || 0;
+      const maxPosition = assetDuration > 0 ? assetDuration - trimEnd : 9999;
+      const safeVideoPosition = Math.min(videoPosition, maxPosition);
       
       // Ne mettre à jour que si la différence est significative
-      if (Math.abs(videoRef.current.currentTime - clipPosition) > 0.1) {
-        setVideoTime(clipPosition);
+      if (Math.abs(videoRef.current.currentTime - safeVideoPosition) > 0.1) {
+        console.log(`Mise à jour position: clipTime=${clipPosition.toFixed(3)}s, ` + 
+                    `videoPosition=${safeVideoPosition.toFixed(3)}s ` +
+                    `(trimStart=${trimStart.toFixed(3)}s, trimEnd=${trimEnd.toFixed(3)}s, ` + 
+                    `assetDuration=${assetDuration.toFixed(3)}s)`);
+        setVideoTime(safeVideoPosition);
       }
     }
-  }, [clips, sortedClips, audioTracks, currentTime, activeClip, getActiveClipAtTime]);
+  }, [clips, sortedClips, audioTracks, currentTime, activeClip, getActiveClipAtTime, onTimeUpdate]);
   
   // Précharger les prochains clips
   useEffect(() => {
@@ -377,7 +430,25 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   
   // Mettre à jour le temps de la vidéo lorsqu'il change
   useEffect(() => {
-    if (!videoRef.current || videoTime <= 0) return;
+    if (!videoRef.current || !activeClip) return;
+    
+    // Ne pas mettre à jour si la valeur est trop petite (possible initialisation)
+    if (videoTime <= 0 && activeClip.trimStart && activeClip.trimStart > 0) {
+      console.log(`🔄 Correction initiale: position au trimStart (${activeClip.trimStart.toFixed(3)}s)`);
+      // S'assurer que le temps initial est au moins au trimStart
+      const correctedTime = activeClip.trimStart;
+      
+      // Indiquer qu'on est en train de modifier le temps manuellement
+      manualTimeUpdateRef.current = true;
+      videoRef.current.currentTime = correctedTime;
+      
+      // Réinitialiser le flag après un court délai
+      setTimeout(() => {
+        manualTimeUpdateRef.current = false;
+      }, 50);
+      
+      return;
+    }
     
     // Éviter les mises à jour inutiles qui peuvent causer des sauts
     const currentVideoTime = videoRef.current.currentTime;
@@ -393,7 +464,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         manualTimeUpdateRef.current = false;
       }, 50);
     }
-  }, [videoTime]);
+  }, [videoTime, activeClip]);
   
   // Gestion des événements vidéo
   useEffect(() => {
