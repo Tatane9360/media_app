@@ -58,9 +58,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return;
     }
 
-    console.log("=== Début de l'association des assets aux clips ===");
-    console.log(`Assets disponibles: ${videoAssets.length}`);
-    console.log(`Clips à associer: ${timeline.clips.length}`);
+    // console.log("=== Début de l'association des assets aux clips ===");
+    // console.log(`Assets disponibles: ${videoAssets.length}`);
+    // console.log(`Clips à associer: ${timeline.clips.length}`);
     
     // Map pour accéder rapidement aux assets par ID
     const assetsMap = new Map();
@@ -109,7 +109,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       const matchingAsset = assetsMap.get(clipAssetId);
       if (matchingAsset) {
         hasUpdatedClips = true;
-        console.log(`Asset trouvé pour le clip ${clip.id}, assetId: ${clipAssetId}`);
+        // console.log(`Asset trouvé pour le clip ${clip.id}, assetId: ${clipAssetId}`);
         return { ...clip, asset: matchingAsset };
       } else {
         console.warn(`⚠️ Aucun asset trouvé pour l'ID: ${clipAssetId}`);
@@ -120,16 +120,16 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
 
     // Si des clips ont été mis à jour, mettre à jour la timeline
     if (hasUpdatedClips) {
-      console.log(`✅ Mise à jour réussie de ${updatedClips.filter(c => c.asset).length}/${updatedClips.length} clips`);
+      // console.log(`✅ Mise à jour réussie de ${updatedClips.filter(c => c.asset).length}/${updatedClips.length} clips`);
       onChange({
         ...timeline,
         clips: updatedClips
       });
     } else {
-      console.log("Aucun clip n'a besoin d'être mis à jour");
+      // console.log("Aucun clip n'a besoin d'être mis à jour");
     }
     
-    console.log("=== Fin de l'association des assets aux clips ===");
+    // console.log("=== Fin de l'association des assets aux clips ===");
   }, [timeline, videoAssets, onChange]);
   
   // Exécuter l'association des assets lors du chargement initial et des mises à jour
@@ -414,7 +414,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         const cId = c.id || c._id?.toString();
         return cId !== clipId;
       });
-      console.log(`Vérification des chevauchements avec ${otherClips.length} autres clips`);
+      // console.log(`Vérification des chevauchements avec ${otherClips.length} autres clips`);
       
       updatedClip = adjustClipPosition(otherClips, updatedClip);
       
@@ -516,7 +516,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return newClip;
     }
     
-    console.log(`Vérification des chevauchements sur la piste ${newClip.trackIndex} avec ${clipsOnTrack.length} clips`);
+    // console.log(`Vérification des chevauchements sur la piste ${newClip.trackIndex} avec ${clipsOnTrack.length} clips`);
     
     // Vérifier les chevauchements
     const adjustedClip = { ...newClip };
@@ -615,9 +615,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return url;
     }
     
-    console.log("=== TRANSFORMATION D'URL ===");
-    console.log("URL originale:", url);
-    
     try {
       // Approche simplifiée: substitution directe de la structure d'URL
       // Format attendu: https://res.cloudinary.com/dexgnx9ki/video/upload/v1750192710/uploads/1750192708755-Enregistrement_de_l_e_cran_2025-06-17_a__22.mov
@@ -650,18 +647,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       if (cleanPath.includes('.')) {
         cleanPath = cleanPath.substring(0, cleanPath.lastIndexOf('.'));
       }
-      
-      console.log("Composants extraits:", { 
-        cloudName, 
-        pathAfterVersion, 
-        cleanPath 
-      });
-      
+    
       // 6. Construire la nouvelle URL
       const newUrl = `https://res.cloudinary.com/${cloudName}/video/upload/c_fill,h_180,w_320/f_auto/v1/${cleanPath}?_a=BAMAAARi0`;
-      
-      console.log("URL transformée:", newUrl);
-      console.log("=== FIN DE TRANSFORMATION ===");
       
       return newUrl;
     } catch (error) {
@@ -673,19 +661,19 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   // Debug: vérification des clips chargés initialement
   useEffect(() => {
     if (timeline.clips.length > 0) {
-      console.log("=== VÉRIFICATION DES CLIPS INITIAUX ===");
-      console.log(`${timeline.clips.length} clips chargés`);
+      // console.log("=== VÉRIFICATION DES CLIPS INITIAUX ===");
+      // console.log(`${timeline.clips.length} clips chargés`);
       
       timeline.clips.forEach((clip, index) => {
         if (clip.asset && clip.asset.storageUrl) {
-          console.log(`Clip ${index} - URL originale:`, clip.asset.storageUrl);
-          console.log(`Clip ${index} - URL transformée:`, getCloudinaryThumbnail(clip.asset.storageUrl));
+          // console.log(`Clip ${index} - URL originale:`, clip.asset.storageUrl);
+          // console.log(`Clip ${index} - URL transformée:`, getCloudinaryThumbnail(clip.asset.storageUrl));
         } else {
-          console.log(`Clip ${index} - Pas d'URL disponible`);
+          // console.log(`Clip ${index} - Pas d'URL disponible`);
         }
       });
       
-      console.log("=== FIN DE VÉRIFICATION ===");
+      // console.log("=== FIN DE VÉRIFICATION ===");
     }
   }, [timeline.clips]);
   
@@ -873,14 +861,15 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                       {/* Affichage du contenu du clip */}
                       {clip.asset && clip.asset.storageUrl ? (
                         <div className="w-full h-full relative" 
-                          onLoad={() => console.log("Rendu du clip avec URL:", clip.asset?.storageUrl)}>
+                          // onLoad={() => console.log("Rendu du clip avec URL:", clip.asset?.storageUrl)}
+                          >
                           <img 
                             src={getCloudinaryThumbnail(clip.asset.storageUrl)} 
                             alt={`Clip ${clip.id || index}`}
                             className="w-full h-full object-cover"
-                            onLoad={(e) => {
-                              console.log("Image chargée:", (e.target as HTMLImageElement).src);
-                            }}
+                            // onLoad={(e) => {
+                            //   console.log("Image chargée:", (e.target as HTMLImageElement).src);
+                            // }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 truncate">
                             {clip.asset.originalName || "Sans titre"}

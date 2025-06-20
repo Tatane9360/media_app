@@ -183,8 +183,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       const adjustedClipDuration = clipDuration - trimEnd;
       
       // Utiliser une marge de tolérance plus grande pour détecter la fin du clip
-      // afin d'éviter que la lecture ne s'arrête prématurément
-      if (clipTime >= adjustedClipDuration - 0.05) { // 50ms avant la fin réelle
+      // Certains clips peuvent avoir besoin d'une détection plus anticipée
+      if (clipTime >= adjustedClipDuration - 0.2) { // 200ms avant la fin réelle (augmenté de 0.05 à 0.2)
         // Trouver le prochain clip (avec ou sans gap)
         const timeAfterCurrentClip = activeClip.endTime + 0.001; // Décalage de 1ms précisément
         
@@ -195,13 +195,35 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         if (!isInTransitionRef.current) {
           isInTransitionRef.current = true;
           
+          // Transition vers le prochain clip ou la fin
           if (nextClip) {
             // S'il y a un écart entre les clips, passons au moment juste après le clip actuel
-            // pour afficher l'écran noir dans l'intervalle
+            // pour afficher l'écran noir dans l'intervalle, mais maintenir la lecture
             console.log(`Fin du clip à ${activeClip.endTime}s, avance de 1ms à ${timeAfterCurrentClip}s`);
             onTimeUpdate(timeAfterCurrentClip);
+            
+            // TOUJOURS assurer que la lecture continue pendant la transition
+            // Même si la vidéo n'est pas en pause, forcer un redémarrage pour les clips problématiques
+            if (videoRef.current && playing) {
+              console.log("Redémarrage forcé de la lecture pendant la transition");
+              // Court délai pour permettre le changement d'état
+              setTimeout(() => {
+                if (videoRef.current && playing) {
+                  videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage:", err));
+                }
+              }, 10);
+            }
+            
+            // Ajouter une vérification supplémentaire après un court délai
+            // Cette vérification secondaire aide avec les clips problématiques
+            setTimeout(() => {
+              if (videoRef.current && playing && (videoRef.current.paused || videoRef.current.ended)) {
+                console.log("Vérification supplémentaire: redémarrage forcé pendant transition");
+                videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage supplémentaire:", err));
+              }
+            }, 150);
           } else {
-            // Fin de la timeline
+            // Fin de la timeline - seul cas où on arrête réellement
             onEnded();
           }
           
@@ -212,6 +234,16 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
           
           transitionTimeoutRef.current = setTimeout(() => {
             isInTransitionRef.current = false;
+            
+            // Vérification supplémentaire pour s'assurer que la lecture se poursuit
+            if (nextClip && videoRef.current && playing) {
+              const isPaused = videoRef.current.paused;
+              const isEnded = videoRef.current.ended;
+              if (isPaused || isEnded) {
+                console.log(`Vérification post-transition: redémarrage de la lecture (paused=${isPaused}, ended=${isEnded})`);
+                videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage post-transition:", err));
+              }
+            }
           }, 300); // Délai suffisant pour éviter les rebonds
         }
       } else {
@@ -225,7 +257,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       // mettre à jour le temps pour continuer la lecture
       onTimeUpdate(continuousTimeRef.current);
     }
-  }, [activeClip, sortedClips, onTimeUpdate, onEnded]);
+  }, [activeClip, sortedClips, onTimeUpdate, onEnded, playing]);
   
   // Trouver et mettre à jour le clip actif en fonction du temps actuel
   useEffect(() => {
@@ -421,8 +453,47 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         // Marquer comme en transition pour éviter les rebonds
         isInTransitionRef.current = true;
         
+        // Chercher le prochain clip
+        const nextClip = sortedClips.find(c => c.startTime > activeClip.endTime);
+        
         // Forcer la mise à jour du temps pour passer au clip suivant ou à l'écran noir
         onTimeUpdate(timeAfterCurrentClip);
+        
+        // Si nous avons un prochain clip, s'assurer de maintenir la lecture
+        if (nextClip && playing) {
+          console.log("Clip suivant trouvé, préparation de la transition continue");
+          
+          // Série de tentatives de reprise de lecture à différents intervalles
+          // pour maximiser les chances de succès avec différents types de clips
+          
+          // Première tentative rapide
+          setTimeout(() => {
+            if (videoRef.current && playing) {
+              console.log("Redémarrage forcé après 'ended' (tentative 1)");
+              videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage après 'ended' (1):", err));
+            }
+          }, 50);
+          
+          // Deuxième tentative si la première échoue
+          setTimeout(() => {
+            if (videoRef.current && videoRef.current.paused && playing) {
+              console.log("Redémarrage forcé après 'ended' (tentative 2)");
+              videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage après 'ended' (2):", err));
+            }
+          }, 150);
+          
+          // Troisième tentative pour les cas les plus difficiles
+          setTimeout(() => {
+            if (videoRef.current && videoRef.current.paused && playing) {
+              console.log("Redémarrage forcé après 'ended' (tentative 3)");
+              videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage après 'ended' (3):", err));
+            }
+          }, 300);
+          
+        } else if (!nextClip) {
+          // Si pas de clip suivant, c'est vraiment la fin
+          onEnded();
+        }
         
         // Réinitialiser l'état de transition après un délai
         if (transitionTimeoutRef.current) {
@@ -431,7 +502,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         
         transitionTimeoutRef.current = setTimeout(() => {
           isInTransitionRef.current = false;
-        }, 300);
+          
+          // Vérification finale avant de quitter l'état de transition
+          if (nextClip && videoRef.current && videoRef.current.paused && playing) {
+            console.log("Vérification finale: redémarrage de la lecture");
+            videoRef.current.play().catch(err => console.error("Erreur lors du redémarrage final:", err));
+          }
+        }, 350);
       }
     };
     
@@ -454,7 +531,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       videoElement.removeEventListener('ended', handleVideoEnded);
     };
-  }, [handleTimeUpdate, loadingState, activeClip, onTimeUpdate]);
+  }, [handleTimeUpdate, loadingState, activeClip, onTimeUpdate, onEnded, playing, sortedClips]);
   
   // Gérer le volume de la vidéo
   useEffect(() => {
@@ -475,8 +552,14 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     const attemptPlay = () => {
       if (!isEffectActive || !videoRef.current) return;
       
-      if (loadingState === LoadingState.READY && playing) {
+      if ((loadingState === LoadingState.READY || loadingState === LoadingState.BUFFERING) && playing) {
         try {
+          // Si la vidéo est déjà en cours de lecture, ne pas interrompre
+          if (!videoRef.current.paused) {
+            return;
+          }
+          
+          console.log("Tentative de lecture vidéo");
           const playPromise = videoRef.current.play();
           
           // Gérer correctement la promesse de lecture
@@ -510,6 +593,21 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     if (playing) {
       // Ajouter un petit délai avant de lancer la lecture pour éviter les conflits
       playAttemptTimer = setTimeout(attemptPlay, 100);
+      
+      // Ajouter une vérification supplémentaire après un délai plus long
+      // pour s'assurer que la lecture continue, même pendant les transitions
+      const continuityCheckTimer = setTimeout(() => {
+        if (isEffectActive && videoRef.current && videoRef.current.paused && playing) {
+          console.log("Vérification de continuité: vidéo en pause alors qu'elle devrait jouer");
+          attemptPlay();
+        }
+      }, 1000);
+      
+      return () => {
+        isEffectActive = false;
+        if (playAttemptTimer) clearTimeout(playAttemptTimer);
+        clearTimeout(continuityCheckTimer);
+      };
     } else if (videoElement) {
       videoElement.pause();
     }
@@ -521,7 +619,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         clearTimeout(playAttemptTimer);
       }
     };
-  }, [playing, loadingState]);
+  }, [playing, loadingState, setError]);
   
   // Gestion sécurisée du changement de source vidéo
   useEffect(() => {
@@ -548,11 +646,11 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
               videoEl.src = videoSource;
               videoEl.preload = 'auto';
               videoEl.load();
-              console.log(`Source vidéo changée: ${videoSource.substring(0, 50)}...`);
+              // console.log(`Source vidéo changée: ${videoSource.substring(0, 50)}...`);
             } else {
               videoEl.removeAttribute('src');
               videoEl.load();
-              console.log('Source vidéo supprimée');
+              // console.log('Source vidéo supprimée');
             }
           } catch (e) {
             console.error('Erreur lors du changement de source vidéo:', e);
@@ -736,54 +834,117 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   
   // Mécanisme de sécurité pour détecter si la lecture s'est arrêtée sans raison
   useEffect(() => {
-    if (!playing || !activeClip || !videoRef.current) return;
+    if (!playing || !videoRef.current) return;
+    
+    // Variable pour suivre si cette instance du hook est active
+    let isEffectActive = true;
     
     // Initialiser la référence avec le temps actuel de la vidéo
-    lastVideoTimeRef.current = videoRef.current.currentTime;
+    if (videoRef.current) {
+      lastVideoTimeRef.current = videoRef.current.currentTime;
+    }
+    
+    // Compteur d'inactivité pour détecter les clips problématiques persistants
+    let inactivityCounter = 0;
     
     // Surveillance pour détecter si la vidéo est arrêtée alors qu'elle devrait jouer
     const checkActivity = () => {
-      if (!videoRef.current || !activeClip || !playing) return;
+      if (!isEffectActive || !videoRef.current || !playing) return;
       
-      const currentTime = videoRef.current.currentTime;
+      const videoElement = videoRef.current;
+      const currentTime = videoElement.currentTime;
       
-      // Si le temps n'a pas avancé depuis la dernière vérification
-      // et que la vidéo n'est pas en pause et qu'elle devrait jouer
-      if (Math.abs(currentTime - lastVideoTimeRef.current) < 0.01 && 
-          !videoRef.current.paused && 
-          loadingState === LoadingState.READY) {
+      // Détecter si le temps n'avance pas ou si la vidéo est en pause inattendue
+      const videoTimeStalled = Math.abs(currentTime - lastVideoTimeRef.current) < 0.01;
+      const isUnexpectedlyPaused = videoElement.paused && playing;
+      const isUnexpectedlyEnded = videoElement.ended && playing;
+      
+      // Si le temps n'avance pas ou si l'état est incorrect
+      if ((videoTimeStalled && !videoElement.paused) || isUnexpectedlyPaused || isUnexpectedlyEnded) {
+        inactivityCounter++;
+        console.log(`Détection d'inactivité #${inactivityCounter}: stalled=${videoTimeStalled}, paused=${isUnexpectedlyPaused}, ended=${isUnexpectedlyEnded}`);
         
-        console.log("Détection d'inactivité: la vidéo semble arrêtée");
-        
-        // Forcer le passage au moment juste après la fin du clip actuel
-        const timeAfterCurrentClip = activeClip.endTime + 0.001;
-        console.log(`Forçage du temps à ${timeAfterCurrentClip}s pour sortir de l'état bloqué`);
-        
-        // Marquer comme en transition et forcer la mise à jour
-        isInTransitionRef.current = true;
-        onTimeUpdate(timeAfterCurrentClip);
-        
-        // Réinitialiser l'état de transition après un délai
-        if (transitionTimeoutRef.current) {
-          clearTimeout(transitionTimeoutRef.current);
+        // Si nous avons un clip actif
+        if (activeClip) {
+          // Progressivement augmenter l'agressivité de la correction selon le nombre de détections
+          if (inactivityCounter === 1) {
+            // Premier essai: simple redémarrage de la lecture
+            console.log("Première tentative de correction: redémarrage de la lecture");
+            videoElement.play().catch(e => console.error("Erreur lors du redémarrage:", e));
+          } 
+          else if (inactivityCounter === 2) {
+            // Deuxième essai: avancer légèrement dans le clip
+            console.log("Deuxième tentative: avance dans le clip actuel");
+            const smallAdvance = currentTime + 0.1;
+            videoElement.currentTime = smallAdvance;
+            setTimeout(() => videoElement.play().catch(e => console.error("Erreur lors du redémarrage après avance:", e)), 50);
+          }
+          else if (inactivityCounter >= 3) {
+            // Troisième essai ou plus: forcer le passage au clip suivant
+            console.log("Tentative avancée: forçage vers le clip suivant");
+            
+            // Marquer comme en transition
+            isInTransitionRef.current = true;
+            
+            // Forcer le passage à la fin du clip actuel
+            const timeAfterCurrentClip = activeClip.endTime + 0.001;
+            console.log(`Forçage du temps à ${timeAfterCurrentClip}s pour sortir de l'état bloqué`);
+            onTimeUpdate(timeAfterCurrentClip);
+            
+            // Chercher le prochain clip pour un saut direct si nécessaire
+            const nextClip = sortedClips.find(c => c.startTime > activeClip.endTime);
+            if (nextClip && inactivityCounter > 4) {
+              // Si l'inactivité persiste, sauter directement au début du clip suivant
+              console.log(`Saut direct au clip suivant à ${nextClip.startTime}s`);
+              setTimeout(() => onTimeUpdate(nextClip.startTime + 0.01), 100);
+            }
+            
+            // Réinitialiser le compteur après une action forte
+            inactivityCounter = 0;
+            
+            // Réinitialiser l'état de transition après un délai
+            if (transitionTimeoutRef.current) {
+              clearTimeout(transitionTimeoutRef.current);
+            }
+            
+            transitionTimeoutRef.current = setTimeout(() => {
+              isInTransitionRef.current = false;
+            }, 350);
+          }
+        } else {
+          // Si nous n'avons pas de clip actif mais que la lecture est en cours
+          // Chercher le prochain clip et y sauter directement si l'inactivité persiste
+          if (inactivityCounter > 2) {
+            const nextClip = sortedClips.find(c => c.startTime > continuousTimeRef.current);
+            if (nextClip) {
+              console.log(`Écran noir inactif: saut direct au prochain clip à ${nextClip.startTime}s`);
+              onTimeUpdate(nextClip.startTime + 0.01);
+              inactivityCounter = 0;
+            } else {
+              // Avancer un peu le temps même sans clip
+              const newTime = continuousTimeRef.current + 0.2;
+              console.log(`Écran noir inactif: avance forcée à ${newTime.toFixed(3)}s`);
+              onTimeUpdate(newTime);
+            }
+          }
         }
-        
-        transitionTimeoutRef.current = setTimeout(() => {
-          isInTransitionRef.current = false;
-        }, 300);
+      } else {
+        // Si le temps avance normalement, réduire progressivement le compteur d'inactivité
+        if (inactivityCounter > 0) inactivityCounter--;
       }
       
       // Mise à jour de la référence pour la prochaine vérification
       lastVideoTimeRef.current = currentTime;
     };
     
-    // Vérifier l'activité toutes les 500ms
-    const intervalId = setInterval(checkActivity, 500);
+    // Vérifier l'activité plus fréquemment pour détecter les problèmes rapidement
+    const intervalId = setInterval(checkActivity, 250); // Intervalle court pour réactivité
     
     return () => {
+      isEffectActive = false;
       clearInterval(intervalId);
     };
-  }, [playing, activeClip, loadingState, onTimeUpdate]);
+  }, [playing, activeClip, sortedClips, onTimeUpdate, continuousTimeRef]);
   
   // Rendu du composant
   return (

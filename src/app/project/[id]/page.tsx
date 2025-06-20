@@ -88,8 +88,8 @@ export default function ProjectEdit() {
             return updatedClip;
           });
           
-          console.log("Clips après association:", data.project.timeline.clips.length);
-          console.log("Exemple de clip:", data.project.timeline.clips[0]);
+          // console.log("Clips après association:", data.project.timeline.clips.length);
+          // console.log("Exemple de clip:", data.project.timeline.clips[0]);
         }
         
         setProject(data.project);
