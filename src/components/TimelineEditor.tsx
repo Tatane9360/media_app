@@ -58,9 +58,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return;
     }
 
-    // console.log("=== Début de l'association des assets aux clips ===");
-    // console.log(`Assets disponibles: ${videoAssets.length}`);
-    // console.log(`Clips à associer: ${timeline.clips.length}`);
+    console.log("=== Début de l'association des assets aux clips ===");
+    console.log(`Assets disponibles: ${videoAssets.length}`);
+    console.log(`Clips à associer: ${timeline.clips.length}`);
     
     // Map pour accéder rapidement aux assets par ID
     const assetsMap = new Map();
@@ -93,7 +93,8 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           if (freshAsset && freshAsset.storageUrl && (
               !clip.asset.metadata || 
               !clip.asset.duration || 
-              freshAsset.updatedAt > clip.asset.updatedAt
+              (freshAsset.updatedAt && clip.asset.updatedAt && 
+               new Date(freshAsset.updatedAt) > new Date(clip.asset.updatedAt))
             )) {
             console.log(`Mise à jour de l'asset pour le clip ${clip.id} (${clipAssetId})`);
             hasUpdatedClips = true;
@@ -109,7 +110,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       const matchingAsset = assetsMap.get(clipAssetId);
       if (matchingAsset) {
         hasUpdatedClips = true;
-        // console.log(`Asset trouvé pour le clip ${clip.id}, assetId: ${clipAssetId}`);
+        console.log(`Asset trouvé pour le clip ${clip.id}, assetId: ${clipAssetId}`);
         return { ...clip, asset: matchingAsset };
       } else {
         console.warn(`⚠️ Aucun asset trouvé pour l'ID: ${clipAssetId}`);
@@ -228,7 +229,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   };
   
   // Modifier un clip
-  const updateClip = (updatedClip: Clip) => {
+  const updateClip = useCallback((updatedClip: Clip) => {
     console.log(`Mise à jour du clip ${updatedClip.id}:`, updatedClip);
     
     // Vérifier que le clip existe
@@ -255,7 +256,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     // Appliquer les changements
     onChange(newTimeline);
-  };
+  }, [timeline, onChange]);
   
   // Supprimer un clip
   const removeClip = (clipId: string) => {
@@ -317,8 +318,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   
   // Pour le drag & drop des clips déjà présents dans la timeline
   const [draggedClip, setDraggedClip] = useState<Clip | null>(null);
-  const [dragStartX, setDragStartX] = useState<number>(0);
   const [draggedClipOffsetX, setDraggedClipOffsetX] = useState<number>(0);
+  
+  // États pour le trimming des clips - ces états sont utilisés pour l'UI uniquement, 
+  // la logique réelle utilise des variables locales pour plus de fiabilité
+  const [trimmingClip, setTrimmingClip] = useState<Clip | null>(null);
+  const [trimmingType, setTrimmingType] = useState<'start' | 'end' | null>(null);
+  const [trimmingStartX, setTrimmingStartX] = useState<number>(0);
+  const [originalClipData, setOriginalClipData] = useState<{
+    startTime: number;
+    endTime: number;
+    trimStart: number;
+    trimEnd: number;
+    assetDuration: number;
+  } | null>(null);
   
   // Commencer à glisser un clip existant
   const handleClipDragStart = (e: React.DragEvent, clip: Clip) => {
@@ -569,7 +582,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     secondary: []
   });
   
-  const calculateTimeMarkers = () => {
+  const calculateTimeMarkers = useCallback(() => {
     const duration = timeline.duration || 60; // Durée par défaut de 60s si la timeline est vide
     
     // Calculer l'intervalle pour les marqueurs primaires en fonction du zoom
@@ -593,12 +606,12 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     }
     
     return { primary, secondary };
-  };
+  }, [timeline.duration, scale]);
   
   // Initialiser les marqueurs de temps
   useEffect(() => {
     setTimeMarkers(calculateTimeMarkers());
-  }, [timeline.duration, scale]);
+  }, [timeline.duration, scale, calculateTimeMarkers]);
   
   // Formater le temps en minutes:secondes.millisecondes
   const formatTime = (seconds: number): string => {
@@ -676,6 +689,252 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       // console.log("=== FIN DE VÉRIFICATION ===");
     }
   }, [timeline.clips]);
+  
+  // Commencer le trimming d'un clip
+  const handleTrimStart = (e: React.MouseEvent, clip: Clip, type: 'start' | 'end') => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Nettoyer tout trimming existant pour éviter les erreurs
+    cleanupTrimmingHandlers();
+    
+    // S'assurer que nous avons un ID de clip valide
+    const clipId = clip.id || clip._id?.toString();
+    if (!clipId) {
+      console.error("Impossible de démarrer le trimming: clip sans ID");
+      return;
+    }
+    
+    // S'assurer que le clip a un asset avec une durée
+    if (!clip.asset) {
+      console.error("Impossible de démarrer le trimming: clip sans asset");
+      return;
+    }
+    
+    // Récupérer la durée de l'asset ou utiliser une valeur par défaut raisonnable
+    const assetDuration = clip.asset.duration || (clip.endTime - clip.startTime + (clip.trimStart || 0) + (clip.trimEnd || 0));
+    if (!assetDuration || assetDuration <= 0) {
+      console.error("Impossible de démarrer le trimming: durée d'asset invalide", clip.asset);
+      return;
+    }
+    
+    console.log(`Début du trimming ${type} pour le clip ${clipId}`, {
+      clip,
+      startTime: clip.startTime,
+      endTime: clip.endTime,
+      trimStart: clip.trimStart || 0,
+      trimEnd: clip.trimEnd || 0,
+      assetDuration
+    });
+    
+    // Enregistrer les données originales du clip pour référence
+    const originalData = {
+      startTime: clip.startTime,
+      endTime: clip.endTime,
+      trimStart: clip.trimStart || 0,
+      trimEnd: clip.trimEnd || 0,
+      assetDuration
+    };
+    
+    // Stocker localement les valeurs importantes pour éviter les problèmes de state
+    const localTrimmingStartX = e.clientX;
+    
+    // Stocker les valeurs dans les états (pour l'UI)
+    setTrimmingClip(clip);
+    setTrimmingType(type);
+    setTrimmingStartX(localTrimmingStartX);
+    setOriginalClipData(originalData);
+    
+    // Sélectionner le clip en cours de trimming
+    setSelectedClipId(clipId);
+    
+    // Appliquer une classe visuelle pour indiquer le trimming
+    const handleElement = e.currentTarget as HTMLElement;
+    handleElement.classList.add('active');
+    
+    // Créer des fonctions locales qui capturent les valeurs actuelles
+    const handleLocalTrimDrag = (moveEvent: MouseEvent) => {
+      try {
+        const delta = (moveEvent.clientX - localTrimmingStartX) / pixelsPerSecond;
+        
+        // Récupérer la durée originale du clip à partir des données originales
+        const clipOriginalDuration = originalData.assetDuration;
+        if (clipOriginalDuration <= 0) {
+          console.error("Impossible de déterminer la durée originale du clip", clip);
+          return;
+        }
+        
+        // Clone du clip pour les modifications (avec valeurs par défaut pour trimStart/trimEnd)
+        const updatedClip = { 
+          ...clip,
+          trimStart: clip.trimStart || 0,
+          trimEnd: clip.trimEnd || 0
+        };
+        
+        console.log(`Delta: ${delta.toFixed(2)}s, type: ${type}, clip:`, {
+          startTime: originalData.startTime.toFixed(2),
+          endTime: originalData.endTime.toFixed(2),
+          trimStart: originalData.trimStart.toFixed(2),
+          trimEnd: originalData.trimEnd.toFixed(2),
+          clipDuration: clipOriginalDuration.toFixed(2)
+        });
+        
+        if (type === 'start') {
+          // Calcul du nouveau trimStart
+          const currentTrimStart = originalData.trimStart + delta;
+          
+          // Limites : ne pas dépasser le début du clip ou sa fin
+          const maxTrimStart = clipOriginalDuration - 0.1; // Laisser au moins 0.1s de contenu
+          const newTrimStart = Math.max(0, Math.min(currentTrimStart, maxTrimStart));
+          
+          // Ne pas dépasser le contenu disponible avec la combinaison trimStart + trimEnd
+          const contentDuration = clipOriginalDuration - newTrimStart - originalData.trimEnd;
+          if (contentDuration < 0.1) {
+            console.warn(`Contenu restant insuffisant: ${contentDuration.toFixed(2)}s`);
+            return;
+          }
+          
+          // Calculer le nouveau temps de début basé sur trimStart
+          const newStartTime = originalData.startTime + (newTrimStart - originalData.trimStart);
+          
+          // Mettre à jour le clip
+          updatedClip.trimStart = newTrimStart;
+          updatedClip.startTime = newStartTime;
+          
+          console.log(`Trimming start: ${newTrimStart.toFixed(2)}s, nouvelle position: ${newStartTime.toFixed(2)}s`);
+        } else {
+          // Calcul du nouveau trimEnd
+          const currentTrimEnd = originalData.trimEnd - delta;
+          
+          // Limites : ne pas dépasser la fin du clip ou son début
+          const maxTrimEnd = clipOriginalDuration - originalData.trimStart - 0.1;
+          const newTrimEnd = Math.max(0, Math.min(currentTrimEnd, maxTrimEnd));
+          
+          // Ne pas dépasser le contenu disponible avec la combinaison trimStart + trimEnd
+          const contentDuration = clipOriginalDuration - originalData.trimStart - newTrimEnd;
+          if (contentDuration < 0.1) {
+            console.warn(`Contenu restant insuffisant: ${contentDuration.toFixed(2)}s`);
+            return;
+          }
+          
+          // Calculer le nouveau temps de fin basé sur trimEnd
+          const newEndTime = originalData.endTime + (originalData.trimEnd - newTrimEnd);
+          
+          // Mettre à jour le clip
+          updatedClip.trimEnd = newTrimEnd;
+          updatedClip.endTime = newEndTime;
+          
+          console.log(`Trimming end: ${newTrimEnd.toFixed(2)}s, nouvelle position: ${newEndTime.toFixed(2)}s`);
+        }
+        
+        // Vérification supplémentaire : s'assurer que le clip a toujours une durée minimale
+        const clipDuration = updatedClip.endTime - updatedClip.startTime;
+        if (clipDuration < 0.1) {
+          console.warn(`Durée de clip trop courte (${clipDuration.toFixed(2)}s), ajustement ignoré`);
+          return; // Ne pas mettre à jour si la durée est trop courte
+        }
+        
+        // Vérifier si les valeurs ont réellement changé pour éviter les mises à jour inutiles
+        if (
+          Math.abs(updatedClip.startTime - clip.startTime) < 0.01 &&
+          Math.abs(updatedClip.endTime - clip.endTime) < 0.01 &&
+          Math.abs(updatedClip.trimStart - (clip.trimStart || 0)) < 0.01 &&
+          Math.abs(updatedClip.trimEnd - (clip.trimEnd || 0)) < 0.01
+        ) {
+          // Pas de changement significatif
+          return;
+        }
+        
+        console.log("Mise à jour du clip:", {
+          id: updatedClip.id,
+          startTime: updatedClip.startTime.toFixed(2),
+          endTime: updatedClip.endTime.toFixed(2),
+          trimStart: updatedClip.trimStart.toFixed(2),
+          trimEnd: updatedClip.trimEnd.toFixed(2)
+        });
+        
+        // Mettre à jour le clip dans la timeline et la référence locale
+        updateClip(updatedClip);
+        
+        // Mettre à jour l'état pour maintenir la référence à jour
+        setTrimmingClip(updatedClip);
+      } catch (error) {
+        console.error("Erreur lors du trimming:", error);
+      }
+    };
+    
+    const handleLocalTrimEnd = (e: MouseEvent) => {
+      // S'assurer que l'événement est bien traité
+      e.preventDefault();
+      if (typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
+      }
+      
+      console.log(`Fin du trimming ${type} pour le clip ${clipId}`);
+      
+      // Supprimer explicitement les écouteurs locaux
+      document.removeEventListener('mousemove', handleLocalTrimDrag);
+      document.removeEventListener('mouseup', handleLocalTrimEnd);
+      
+      // Supprimer les classes visuelles
+      const activeHandles = document.querySelectorAll('.trim-handle.active');
+      activeHandles.forEach(handle => handle.classList.remove('active'));
+      
+      // Réinitialiser les états
+      setTrimmingClip(null);
+      setTrimmingType(null);
+      setOriginalClipData(null);
+      
+      // Log pour confirmer la fin du trimming
+      console.log("Trimming terminé, écouteurs supprimés");
+    };
+    
+    // Nettoyer d'abord tous les listeners précédents au cas où
+    document.removeEventListener('mousemove', handleLocalTrimDrag);
+    document.removeEventListener('mouseup', handleLocalTrimEnd);
+    
+    // Supprimer les classes visuelles existantes
+    const activeHandles = document.querySelectorAll('.trim-handle.active');
+    activeHandles.forEach(handle => handle.classList.remove('active'));
+    
+    // Ajouter les nouveaux écouteurs d'événements directement avec les fonctions locales
+    console.log(`Ajout des écouteurs pour le trimming de ${type}`);
+    document.addEventListener('mousemove', handleLocalTrimDrag, { passive: false });
+    document.addEventListener('mouseup', handleLocalTrimEnd, { once: true, passive: false });
+  };
+  
+  // Fonction de nettoyage des gestionnaires de trimming
+  const cleanupTrimmingHandlers = useCallback(() => {
+    console.log("Nettoyage des gestionnaires de trimming");
+    
+    // Réinitialiser les états
+    setTrimmingClip(null);
+    setTrimmingType(null);
+    setOriginalClipData(null);
+    
+    // Supprimer les classes visuelles
+    const activeHandles = document.querySelectorAll('.trim-handle.active');
+    activeHandles.forEach(handle => handle.classList.remove('active'));
+    
+    // Supprimer les gestionnaires d'événements globaux
+    // Utiliser des fonctions vides pour les supprimer si nécessaire
+    try {
+      // Suppression générique des écouteurs
+      const noop = () => {};
+      document.removeEventListener('mousemove', noop as EventListener);
+      document.removeEventListener('mouseup', noop as EventListener);
+      console.log("Nettoyage des gestionnaires réussi");
+    } catch (error) {
+      console.error("Erreur lors du nettoyage des gestionnaires:", error);
+    }
+  }, []);
+  
+  // Nettoyer les listeners au démontage du composant
+  useEffect(() => {
+    return () => {
+      cleanupTrimmingHandlers();
+    };
+  }, [cleanupTrimmingHandlers]);
   
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">
@@ -860,71 +1119,94 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                     >
                       {/* Affichage du contenu du clip */}
                       {clip.asset && clip.asset.storageUrl ? (
-                        <div className="w-full h-full relative" 
-                          // onLoad={() => console.log("Rendu du clip avec URL:", clip.asset?.storageUrl)}
-                          >
+                        <div className="w-full h-full relative">
                           <img 
                             src={getCloudinaryThumbnail(clip.asset.storageUrl)} 
-                            alt={`Clip ${clip.id || index}`}
+                            alt={`Clip ${clip.id || clip._id}`}
                             className="w-full h-full object-cover"
-                            // onLoad={(e) => {
-                            //   console.log("Image chargée:", (e.target as HTMLImageElement).src);
-                            // }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 truncate">
                             {clip.asset.originalName || "Sans titre"}
+                            {clip.asset.duration ? ` (${clip.asset.duration.toFixed(1)}s)` : ''}
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white text-xs">
-                          {clip.assetId ? "Asset non disponible" : "Clip invalide"}
+                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white text-xs p-1 text-center">
+                          {clip.assetId ? 
+                            "Asset non disponible" : 
+                            "Clip invalide"}
                         </div>
                       )}
+                      
+                      {/* Poignées de trimming */}
+                      <div 
+                        className={`trim-handle trim-handle-start absolute left-0 top-0 bottom-0 w-2 cursor-w-resize 
+                                   ${isSelected ? 'bg-blue-500 opacity-70 hover:opacity-100' : 'bg-gray-400 opacity-0 hover:opacity-50'} 
+                                   transition-opacity duration-200`}
+                        onMouseDown={(e) => handleTrimStart(e, clip, 'start')}
+                      />
+                      <div 
+                        className={`trim-handle trim-handle-end absolute right-0 top-0 bottom-0 w-2 cursor-e-resize 
+                                   ${isSelected ? 'bg-blue-500 opacity-70 hover:opacity-100' : 'bg-gray-400 opacity-0 hover:opacity-50'} 
+                                   transition-opacity duration-200`}
+                        onMouseDown={(e) => handleTrimStart(e, clip, 'end')}
+                      />
                     </div>
                   );
                 })}
-            </div>
-          ))}
-        </div>
-        
-        {/* Bibliothèque d'assets */}
-        <div className="mt-4 border-t border-gray-700 p-2">
-          <h3 className="text-white font-semibold mb-2">Assets vidéo</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {videoAssets.map(asset => (
-              <div 
-                key={asset._id || asset.id}
-                className="bg-gray-800 rounded overflow-hidden cursor-pointer"
-                draggable
-                onDragStart={() => handleDragStart(asset)}
-                onClick={() => addClip(asset)}
-              >
-                <div className="aspect-video relative">
-                  {asset.metadata?.thumbnailUrl ? (
-                    <img 
-                      src={asset.metadata.thumbnailUrl} 
-                      alt={asset.originalName}
-                      width={160}
-                      height={90}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <VideoThumbnail
-                      videoUrl={asset.storageUrl}
-                      alt={asset.originalName}
-                      width={160}
-                      height={90}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-                <div className="p-2">
-                  <div className="text-white text-sm truncate">{asset.originalName}</div>
-                  <div className="text-gray-400 text-xs">{formatTime(asset.duration)}</div>
-                </div>
+                
+                {/* Indicateur de drop */}
+                {dropIndicator.visible && dropIndicator.trackIndex === trackIndex && (
+                  <div 
+                    className="absolute top-1 bottom-1 bg-blue-500/30 border border-blue-500 rounded"
+                    style={{
+                      left: `${dropIndicator.position}px`,
+                      width: `${dropIndicator.width}px`
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
+        </div>
+      
+      {/* Panel des assets */}
+      <div className="p-4 bg-gray-800 border-t border-gray-700">
+        <h3 className="text-white font-semibold mb-2">Assets vidéo</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {videoAssets.map(asset => (
+            <div 
+              key={asset._id || asset.id}
+              className="bg-gray-800 rounded overflow-hidden cursor-pointer"
+              draggable
+              onDragStart={() => handleDragStart(asset)}
+              onClick={() => addClip(asset)}
+            >
+              <div className="aspect-video relative">
+                {asset.metadata?.thumbnailUrl ? (
+                  <img 
+                    src={asset.metadata.thumbnailUrl} 
+                    alt={asset.originalName}
+                    width={160}
+                    height={90}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <VideoThumbnail
+                    videoUrl={asset.storageUrl}
+                    alt={asset.originalName}
+                    width={160}
+                    height={90}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+              <div className="p-2">
+                <div className="text-white text-sm truncate">{asset.originalName}</div>
+                <div className="text-gray-400 text-xs">{formatTime(asset.duration)}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       
@@ -935,40 +1217,23 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-400 mb-1">Début du clip</label>
-              <input
-                type="number"
-                min={0}
-                max={selectedClip.endTime - 0.1}
-                step={0.1}
-                value={selectedClip.startTime}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  updateClip({
-                    ...selectedClip,
-                    startTime: value
-                  } as Clip);
-                }}
-                className="w-full bg-gray-700 text-white p-2 rounded"
-              />
+              <label className="block text-gray-400 mb-1">Position dans la timeline</label>
+              <div className="text-white bg-gray-700 p-2 rounded">
+                {formatTime(selectedClip.startTime)} - {formatTime(selectedClip.endTime)}
+              </div>
             </div>
             
             <div>
-              <label className="block text-gray-400 mb-1">Fin du clip</label>
-              <input
-                type="number"
-                min={selectedClip.startTime + 0.1}
-                step={0.1}
-                value={selectedClip.endTime}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  updateClip({
-                    ...selectedClip,
-                    endTime: value
-                  } as Clip);
-                }}
-                className="w-full bg-gray-700 text-white p-2 rounded"
-              />
+              <label className="block text-gray-400 mb-1">Trimming</label>
+              <div className="text-white bg-gray-700 p-2 rounded">
+                <div className="flex justify-between">
+                  <span>Début: {(selectedClip.trimStart || 0).toFixed(1)}s</span>
+                  <span>Fin: {(selectedClip.trimEnd || 0).toFixed(1)}s</span>
+                </div>
+                <div className="mt-2 text-xs text-gray-400">
+                  Utilisez les poignées sur les bords du clip pour ajuster le trimming
+                </div>
+              </div>
             </div>
             
             <div>
@@ -1004,12 +1269,5 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     </div>
   );
 };
-
-// Fonction utilitaire pour formater le temps
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
 
 export { TimelineEditor };
