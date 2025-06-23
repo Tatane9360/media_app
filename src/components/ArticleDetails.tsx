@@ -2,7 +2,23 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
-export default function ArticleDetail({ article, onClose }) {
+interface Article {
+    title: string;
+    author: {
+        email: string;
+    };
+    createdAt: string;
+    published: boolean;
+    image?: string;
+    content: string;
+}
+
+interface ArticleDetailProps {
+    article: Article;
+    onClose: () => void;
+}
+
+export default function ArticleDetail({ article, onClose }: ArticleDetailProps) {
     const overlayRef = useRef(null);
     const modalRef = useRef(null);
 

@@ -18,12 +18,12 @@ export default function ArticleList() {
     fetchArticles();
   }, [fetchArticles]);
 
-  const handleEdit = (article) => {
+  const handleEdit = (article: any) => {
     setEditingArticle(article);
     setShowEditor(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: any) => {
     if (confirm('Are you sure you want to delete this article?')) {
       await deleteArticle(id);
     }
@@ -34,7 +34,7 @@ export default function ArticleList() {
     setEditingArticle(null);
   };
 
-  const handleShowDetail = (article) => {
+  const handleShowDetail = (article: any) => {
     setSelectedArticle(article);
   };
 
@@ -43,7 +43,7 @@ export default function ArticleList() {
   };
 
   // Function to truncate markdown content
-  const truncateMarkdown = (markdown, maxLength = 200) => {
+  const truncateMarkdown = (markdown: string, maxLength = 200) => {
     const plainText = markdown.replace(/[#*`_~\[\]()]/g, '').replace(/\n/g, ' ');
     return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
   };
