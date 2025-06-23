@@ -3,6 +3,9 @@
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useArticleStore } from '@/store/articleStore';
+// 1. On importe la librairie de compression/conversion
+import imageCompression from 'browser-image-compression';
+
 
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
   ssr: false,
@@ -24,19 +27,34 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
   const [image, setImage] = useState(article?.image || '');
   const [published, setPublished] = useState(article?.published || false);
   const [uploading, setUploading] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { createArticle, updateArticle, loading } = useArticleStore();
 
+  // 2. Fonction modifiée pour compresser et convertir en WebP avant upload
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // 3. Options de compression/conversion (ajustables)
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+        fileType: 'image/webp', // Conversion en WebP
+        initialQuality: 0.7,
+      };
 
+      // 4. Compression et conversion en WebP AVANT l'envoi
+      const compressedFile = await imageCompression(file, options);
+
+      // 5. On prépare le FormData avec le fichier compressé/converi
+      const formData = new FormData();
+      formData.append('file', compressedFile, 'image.webp');
+
+      // 6. On envoie à l'API comme avant
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -45,7 +63,7 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
       const data = await response.json();
 
       if (response.ok) {
-        setImage(data.url);
+        setImage(data.url); // On stocke l'URL de l'image WebP uploadée
       } else {
         alert(data.error || 'Upload failed');
       }
@@ -101,7 +119,7 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-black-900 mb-2">
               Title *
             </label>
             <input
@@ -143,7 +161,7 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleFileUpload}
+                onChange={handleFileUpload} // <-- Ici, on utilise la fonction modifiée
                 className="hidden"
               />
               {image && (
@@ -159,18 +177,31 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Content *
-            </label>
-            <MDEditor
-              value={content}
-              onChange={(val) => setContent(val || '')}
-              height={400}
-              preview="edit"
-              hideToolbar={false}
-              visibleDragbar={false}
-            />
-          </div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Content *
+      </label>
+      <div className="border border-gray-300 rounded-md shadow-sm bg-white">
+        <MDEditor
+          value={content}
+          onChange={(val) => setContent(val || '')}
+          height={400}
+          preview="edit"
+          hideToolbar={false}
+          visibleDragbar={false}
+          className="prose max-w-none p-4"
+          textareaProps={{
+            style: {
+              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+              fontSize: 16,
+              lineHeight: 1.6,
+              minHeight: 360,
+              padding: 12,
+              outline: 'none',
+            },
+          }}
+        />
+      </div>
+    </div>
 
           <div className="flex items-center">
             <input

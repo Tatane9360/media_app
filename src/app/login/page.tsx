@@ -39,7 +39,7 @@ export default function Login() {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('token', data.token);
-        router.push('/dashboard');
+        router.push('/admin');
       } else {
         const data = await response.json();
         setError(data.error || 'Login failed');

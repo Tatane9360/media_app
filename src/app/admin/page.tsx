@@ -22,7 +22,6 @@ export default function AdminDashboard() {
   const checkAuth = async () => {
     try {
       const res = await fetch("/api/auth/me");
-
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.admin) {
@@ -52,68 +51,95 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-semibold text-neutral-900">Chargement...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-600">Welcome, {admin?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r flex flex-col justify-between py-8 px-6 min-h-screen shadow-sm">
+        <div>
+          <div className="flex items-center gap-3 mb-12">
+            <span className="inline-block bg-neutral-900 rounded-full p-2">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path d="M12 4v16m8-8H4" />
+              </svg>
+            </span>
+            <span className="text-2xl font-bold text-neutral-900">Admin</span>
           </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-8 py-8">
-        <div className="mb-8">
-          <nav className="flex space-x-8">
+          <nav className="flex flex-col gap-2">
             <button
               onClick={() => setActiveTab("articles")}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "articles"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-black"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all
+                ${
+                  activeTab === "articles"
+                    ? "bg-gray-100 text-neutral-900 font-semibold shadow"
+                    : "hover:bg-gray-100 text-neutral-900"
+                }`}
             >
+              <span>📝</span>
               Articles
             </button>
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === "dashboard"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all
+                ${
+                  activeTab === "dashboard"
+                    ? "bg-gray-100 text-neutral-900 font-semibold shadow"
+                    : "hover:bg-gray-100 text-neutral-900"
+                }`}
             >
+              <span>📊</span>
               Dashboard
             </button>
           </nav>
         </div>
-
-        {activeTab === "articles" && <ArticleList />}
-
-        {activeTab === "dashboard" && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Dashboard Overview</h2>
-            <p className="text-gray-600">
-              Dashboard statistics and overview will go here...
-            </p>
+        <div className="flex flex-col gap-2">
+          <div className="text-xs text-gray-400 mb-1">Connecté en tant que</div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center font-bold">
+              {admin?.email?.[0]?.toUpperCase()}
+            </span>
+            <span className="text-sm font-medium text-neutral-900">{admin?.email}</span>
           </div>
-        )}
-      </div>
+          <button
+            onClick={handleLogout}
+            className="mt-4 px-4 py-2 bg-neutral-900 text-white rounded-lg shadow hover:bg-neutral-800 transition"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 px-10 py-10">
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-3xl font-extrabold text-neutral-900 tracking-tight">
+            {activeTab === "articles" ? "Gestion des articles" : "Vue d'ensemble"}
+          </h1>
+        </div>
+
+        <section>
+          {activeTab === "articles" && (
+            <div>
+              <ArticleList />
+            </div>
+          )}
+
+          {activeTab === "dashboard" && (
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-2xl font-semibold mb-4 text-neutral-900">Dashboard Overview</h2>
+              <p className="text-neutral-700">
+                Les statistiques et l’aperçu du dashboard seront affichés ici...
+              </p>
+              {/* Ajoute ici tes widgets, graphiques, etc. */}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
