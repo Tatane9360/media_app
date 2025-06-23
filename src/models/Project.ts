@@ -109,6 +109,10 @@ const AudioTrackSchema = new mongoose.Schema({
     default: 0,
     min: [0, "Fade out must be positive"],
   },
+  linkedVideoClipId: {
+    type: String,
+    default: null,
+  },
 });
 
 // Schéma principal de la timeline

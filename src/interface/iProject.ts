@@ -44,6 +44,7 @@ export interface AudioTrack {
   volume?: number;
   fadeIn?: number;
   fadeOut?: number;
+  linkedVideoClipId?: string; // ID du clip vidéo auquel cet audio est lié (pour l'audio des clips vidéo)
 }
 
 // Interface principale pour la timeline
