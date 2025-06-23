@@ -4,6 +4,7 @@ import { VideoAsset } from '@/interface/iVideoAsset';
 import { CloudinaryImage } from './CloudinaryImage';
 import { VideoThumbnail } from './VideoThumbnail';
 import VideoPreview from './VideoPreview';
+import { AudioTrackComponent } from './AudioTrackComponent';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -26,6 +27,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [playing, setPlaying] = useState<boolean>(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [selectedAudioTrackId, setSelectedAudioTrackId] = useState<string | null>(null);
   const [draggedAsset, setDraggedAsset] = useState<VideoAsset | null>(null);
   
   // État pour l'indication de drop
@@ -43,6 +45,86 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   
   // Calculer la durée visible en pixels
   const pixelsPerSecond = scale / 10; // 10px par seconde à 100% de zoom
+  
+  // Fonction utilitaire pour détecter si un asset a de l'audio
+  const assetHasAudio = useCallback((asset: VideoAsset): boolean => {
+    // Vérifier d'abord la propriété hasAudio si elle est définie
+    if (asset.hasAudio !== undefined) {
+      return asset.hasAudio;
+    }
+    
+    // Sinon, détecter automatiquement basé sur les métadonnées
+    const metadata = asset.metadata;
+    if (metadata && metadata.audioChannels && metadata.audioChannels > 0) {
+      return true;
+    }
+    
+    // Détecter basé sur le type MIME
+    const mimeType = asset.mimeType.toLowerCase();
+    if (mimeType.includes('audio/') || 
+        (mimeType.includes('video/') && !mimeType.includes('gif'))) {
+      // La plupart des formats vidéo ont de l'audio sauf les GIFs
+      return true;
+    }
+    
+    // Par défaut, supposer qu'il y a de l'audio pour les vidéos
+    return true;
+  }, []);
+  
+  // Fonctions utilitaires pour la gestion des pistes audio synchronisées
+  
+  /**
+   * Créer une piste audio liée automatiquement à un clip vidéo
+   */
+  const createLinkedAudioTrack = useCallback((videoClip: Clip): AudioTrack | null => {
+    // Vérifier si le clip vidéo a de l'audio
+    if (!videoClip.asset || !assetHasAudio(videoClip.asset)) {
+      return null;
+    }
+    
+    const audioTrack: AudioTrack = {
+      id: `audio-linked-${videoClip.id}`,
+      assetId: videoClip.assetId,
+      asset: videoClip.asset,
+      trackIndex: 0, // Piste audio principale (pour l'audio des vidéos)
+      startTime: videoClip.startTime,
+      endTime: videoClip.endTime,
+      volume: videoClip.volume || 1,
+      fadeIn: 0,
+      fadeOut: 0,
+      linkedVideoClipId: videoClip.id || videoClip._id?.toString()
+    };
+    
+    return audioTrack;
+  }, [assetHasAudio]);
+  
+  /**
+   * Mettre à jour une piste audio liée lorsque son clip vidéo change
+   */
+  const updateLinkedAudioTrack = useCallback((updatedVideoClip: Clip): AudioTrack | null => {
+    if (!updatedVideoClip.asset || !assetHasAudio(updatedVideoClip.asset)) {
+      return null;
+    }
+    
+    const videoClipId = updatedVideoClip.id || updatedVideoClip._id?.toString();
+    const existingAudioTrack = timeline.audioTracks.find(
+      track => track.linkedVideoClipId === videoClipId
+    );
+    
+    if (!existingAudioTrack) {
+      return createLinkedAudioTrack(updatedVideoClip);
+    }
+    
+    // Synchroniser les propriétés avec le clip vidéo
+    const updatedAudioTrack: AudioTrack = {
+      ...existingAudioTrack,
+      startTime: updatedVideoClip.startTime,
+      endTime: updatedVideoClip.endTime,
+      volume: updatedVideoClip.volume || existingAudioTrack.volume || 1
+    };
+    
+    return updatedAudioTrack;
+  }, [timeline.audioTracks, createLinkedAudioTrack, assetHasAudio]);
   
   // Fonction d'aide pour associer les assets vidéo aux clips
   const ensureClipsHaveAssets = useCallback(() => {
@@ -194,7 +276,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   );
 
   // Ajouter un clip à la timeline
-  const addClip = (asset: VideoAsset, trackIndex = 0) => {
+  const addClip = (asset: VideoAsset, trackIndex = 0, forceAudioOnly = false) => {
+    if (forceAudioOnly && assetHasAudio(asset)) {
+      // Ajouter uniquement comme piste audio indépendante
+      addAudioTrack(asset, 1); // Piste 1 par défaut pour l'audio indépendant
+      return;
+    }
+    
+    // Comportement normal : ajouter comme clip vidéo (avec audio automatique si présent)
     // Calculer la position de départ du nouveau clip
     let startTime = currentTime;
     
@@ -218,9 +307,19 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       effects: []
     };
     
+    // Créer automatiquement une piste audio liée si le clip a de l'audio
+    const newAudioTracks = [...timeline.audioTracks];
+    if (assetHasAudio(asset)) {
+      const linkedAudioTrack = createLinkedAudioTrack(newClip);
+      if (linkedAudioTrack) {
+        newAudioTracks.push(linkedAudioTrack);
+      }
+    }
+    
     const newTimeline = {
       ...timeline,
       clips: [...timeline.clips, newClip],
+      audioTracks: newAudioTracks,
       duration: Math.max(timeline.duration, newClip.endTime)
     };
     
@@ -244,23 +343,56 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     const newClips = [...timeline.clips];
     newClips[existingClipIndex] = updatedClip;
     
+    // Mettre à jour automatiquement la piste audio liée si elle existe
+    const newAudioTracks = [...timeline.audioTracks];
+    const clipId = updatedClip.id || updatedClip._id?.toString();
+    
+    if (updatedClip.asset && assetHasAudio(updatedClip.asset) && clipId) {
+      const linkedAudioTrackIndex = newAudioTracks.findIndex(
+        track => track.linkedVideoClipId === clipId
+      );
+      
+      if (linkedAudioTrackIndex >= 0) {
+        // Synchroniser la piste audio existante avec le clip vidéo mis à jour
+        const updatedAudioTrack: AudioTrack = {
+          ...newAudioTracks[linkedAudioTrackIndex],
+          startTime: updatedClip.startTime,
+          endTime: updatedClip.endTime,
+          volume: updatedClip.volume || newAudioTracks[linkedAudioTrackIndex].volume || 1
+        };
+        newAudioTracks[linkedAudioTrackIndex] = updatedAudioTrack;
+      } else {
+        // Créer une nouvelle piste audio liée si elle n'existe pas
+        const newLinkedAudioTrack = createLinkedAudioTrack(updatedClip);
+        if (newLinkedAudioTrack) {
+          newAudioTracks.push(newLinkedAudioTrack);
+        }
+      }
+    }
+    
     // Recalculer la durée totale de la timeline
     const maxEndTime = Math.max(...newClips.map(clip => clip.endTime));
     
-    // Créer une nouvelle timeline avec les clips mis à jour
+    // Créer une nouvelle timeline avec les clips et audio mis à jour
     const newTimeline = {
       ...timeline,
       clips: newClips,
+      audioTracks: newAudioTracks,
       duration: Math.max(timeline.duration, maxEndTime)
     };
     
     // Appliquer les changements
     onChange(newTimeline);
-  }, [timeline, onChange]);
+  }, [timeline, onChange, createLinkedAudioTrack, assetHasAudio]);
   
   // Supprimer un clip
   const removeClip = (clipId: string) => {
     const newClips = timeline.clips.filter(clip => clip.id !== clipId);
+    
+    // Supprimer automatiquement la piste audio liée si elle existe
+    const newAudioTracks = timeline.audioTracks.filter(
+      track => track.linkedVideoClipId !== clipId
+    );
     
     // Recalculer la durée totale si nécessaire
     const maxEndTime = newClips.length ? Math.max(...newClips.map(clip => clip.endTime)) : 0;
@@ -268,6 +400,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     const newTimeline = {
       ...timeline,
       clips: newClips,
+      audioTracks: newAudioTracks,
       duration: maxEndTime
     };
     
@@ -276,7 +409,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   };
   
   // Ajouter une piste audio
-  const addAudioTrack = (asset: VideoAsset, trackIndex = 0) => {
+  const addAudioTrack = (asset: VideoAsset, trackIndex = 1) => { // trackIndex = 1 pour éviter la piste 0 réservée aux vidéos
     const newAudioTrack: AudioTrack = {
       id: `audio-${Date.now()}`,
       assetId: asset._id || asset.id,
@@ -287,6 +420,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       volume: 1,
       fadeIn: 0,
       fadeOut: 0
+      // Pas de linkedVideoClipId pour les pistes indépendantes
     };
     
     const newTimeline = {
@@ -296,6 +430,53 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     };
     
     onChange(newTimeline);
+    setSelectedAudioTrackId(newAudioTrack.id as string);
+  };
+  
+  // Modifier une piste audio
+  const updateAudioTrack = useCallback((updatedTrack: AudioTrack) => {
+    console.log(`Mise à jour de la piste audio ${updatedTrack.id}:`, updatedTrack);
+    
+    const existingTrackIndex = timeline.audioTracks.findIndex(track => 
+      (track.id === updatedTrack.id) || (track._id?.toString() === updatedTrack.id)
+    );
+    
+    if (existingTrackIndex === -1) {
+      console.error(`Piste audio introuvable: ${updatedTrack.id}`);
+      return;
+    }
+    
+    const newAudioTracks = [...timeline.audioTracks];
+    newAudioTracks[existingTrackIndex] = updatedTrack;
+    
+    // Recalculer la durée totale
+    const maxEndTime = Math.max(
+      ...timeline.clips.map(clip => clip.endTime),
+      ...newAudioTracks.map(track => track.endTime)
+    );
+    
+    const newTimeline = {
+      ...timeline,
+      audioTracks: newAudioTracks,
+      duration: Math.max(timeline.duration, maxEndTime)
+    };
+    
+    onChange(newTimeline);
+  }, [timeline, onChange]);
+  
+  // Supprimer une piste audio
+  const removeAudioTrack = (trackId: string) => {
+    const newAudioTracks = timeline.audioTracks.filter(track => 
+      track.id !== trackId && track._id?.toString() !== trackId
+    );
+    
+    const newTimeline = {
+      ...timeline,
+      audioTracks: newAudioTracks
+    };
+    
+    onChange(newTimeline);
+    setSelectedAudioTrackId(null);
   };
   
   // Ajouter un effet à un clip
@@ -437,32 +618,74 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       setDraggedClip(null);
     }
     else if (draggedAsset) {
-      // Créer un nouveau clip à la position de drop
-      let newClip: Clip = {
-        id: `clip-${Date.now()}`,
-        assetId: draggedAsset._id || draggedAsset.id,
-        asset: draggedAsset, // Pour l'UI
-        trackIndex,
-        startTime: dropTime,
-        endTime: dropTime + draggedAsset.duration,
-        trimStart: 0,
-        trimEnd: 0,
-        volume: 1,
-        effects: []
-      };
+      // Déterminer si on ajoute un clip vidéo ou une piste audio
+      const targetElement = e.currentTarget as HTMLElement;
+      const isAudioTrack = targetElement.querySelector('.absolute .text-gray-400')?.textContent?.includes('Audio');
       
-      // Ajuster la position pour éviter les chevauchements
-      newClip = adjustClipPosition(timeline.clips, newClip);
-      
-      const newTimeline = {
-        ...timeline,
-        clips: [...timeline.clips, newClip],
-        duration: Math.max(timeline.duration, newClip.endTime)
-      };
-      
-      onChange(newTimeline);
-      setSelectedClipId(newClip.id as string);
-      setDraggedAsset(null);
+      if (isAudioTrack && assetHasAudio(draggedAsset)) {
+        // Ajouter une piste audio indépendante
+        const dropTime = Math.max(0, (x - 50) / pixelsPerSecond); // 50px d'offset pour centrer
+        
+        const newAudioTrack: AudioTrack = {
+          id: `audio-${Date.now()}`,
+          assetId: draggedAsset._id || draggedAsset.id,
+          asset: draggedAsset,
+          trackIndex,
+          startTime: dropTime,
+          endTime: dropTime + draggedAsset.duration,
+          volume: 1,
+          fadeIn: 0,
+          fadeOut: 0
+          // Pas de linkedVideoClipId car c'est une piste indépendante
+        };
+        
+        const newTimeline = {
+          ...timeline,
+          audioTracks: [...timeline.audioTracks, newAudioTrack],
+          duration: Math.max(timeline.duration, newAudioTrack.endTime)
+        };
+        
+        onChange(newTimeline);
+        setSelectedAudioTrackId(newAudioTrack.id as string);
+        setDraggedAsset(null);
+      } else {
+        // Ajouter un clip vidéo (comportement original)
+        let newClip: Clip = {
+          id: `clip-${Date.now()}`,
+          assetId: draggedAsset._id || draggedAsset.id,
+          asset: draggedAsset, // Pour l'UI
+          trackIndex,
+          startTime: dropTime,
+          endTime: dropTime + draggedAsset.duration,
+          trimStart: 0,
+          trimEnd: 0,
+          volume: 1,
+          effects: []
+        };
+        
+        // Ajuster la position pour éviter les chevauchements
+        newClip = adjustClipPosition(timeline.clips, newClip);
+        
+        // Créer automatiquement une piste audio liée si le clip a de l'audio
+        const newAudioTracks = [...timeline.audioTracks];
+        if (assetHasAudio(draggedAsset)) {
+          const linkedAudioTrack = createLinkedAudioTrack(newClip);
+          if (linkedAudioTrack) {
+            newAudioTracks.push(linkedAudioTrack);
+          }
+        }
+        
+        const newTimeline = {
+          ...timeline,
+          clips: [...timeline.clips, newClip],
+          audioTracks: newAudioTracks,
+          duration: Math.max(timeline.duration, newClip.endTime)
+        };
+        
+        onChange(newTimeline);
+        setSelectedClipId(newClip.id as string);
+        setDraggedAsset(null);
+      }
       setDropIndicator(prev => ({ ...prev, visible: false }));
     }
   };
@@ -935,7 +1158,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       cleanupTrimmingHandlers();
     };
   }, [cleanupTrimmingHandlers]);
-  
+
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">
       {/* Prévisualisation vidéo */}
@@ -1169,6 +1392,104 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             ))}
           </div>
         </div>
+        
+        {/* Timeline Audio */}
+        <div className="bg-gray-800 border-t border-gray-700">
+          <div className="p-2 bg-gray-700">
+            <h3 className="text-white font-semibold">Timeline Audio</h3>
+          </div>
+          
+          {/* Pistes audio */}
+          <div 
+            className="relative"
+            style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
+          >
+            {/* Piste 0: Audio des clips vidéo (liés) */}
+            <div className="h-16 bg-gray-800 border-b border-gray-600 relative">
+              <div className="absolute left-2 top-2 text-gray-400 text-xs">
+                Audio vidéo (liées)
+              </div>
+              
+              {timeline.audioTracks
+                .filter(track => track.linkedVideoClipId) // Afficher seulement les pistes liées
+                .map((track) => {
+                  const trackKey = track.id || track._id?.toString() || 'unknown';
+                  const isSelected = selectedAudioTrackId === trackKey;
+                  
+                  return (
+                    <AudioTrackComponent
+                      key={trackKey}
+                      track={track}
+                      trackKey={trackKey}
+                      trackIndex={0}
+                      isSelected={isSelected}
+                      pixelsPerSecond={pixelsPerSecond}
+                      onSelect={setSelectedAudioTrackId}
+                      onDragStart={() => {}} // Pas de drag pour les pistes liées
+                      onDragEnd={() => {}}
+                      onTrimStart={() => {}} // Pas de trim pour les pistes liées
+                      onRemove={() => {}} // Pas de suppression pour les pistes liées
+                    />
+                  );
+                })}
+            </div>
+            
+            {/* Pistes audio indépendantes (1, 2, 3...) */}
+            {[1, 2, 3].map((trackIndex) => (
+              <div 
+                key={`audio-track-${trackIndex}`}
+                className="h-16 bg-gray-900 border-b border-gray-600 relative"
+                onDragOver={(e) => handleDragOver(e, trackIndex)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, trackIndex)}
+              >
+                <div className="absolute left-2 top-2 text-gray-400 text-xs">
+                  Audio {trackIndex}
+                </div>
+                
+                {timeline.audioTracks
+                  .filter(track => !track.linkedVideoClipId && track.trackIndex === trackIndex)
+                  .map((track) => {
+                    const trackKey = track.id || track._id?.toString() || 'unknown';
+                    const isSelected = selectedAudioTrackId === trackKey;
+                    
+                    return (
+                      <AudioTrackComponent
+                        key={trackKey}
+                        track={track}
+                        trackKey={trackKey}
+                        trackIndex={trackIndex}
+                        isSelected={isSelected}
+                        pixelsPerSecond={pixelsPerSecond}
+                        onSelect={setSelectedAudioTrackId}
+                        onDragStart={(e: React.DragEvent, draggedTrack: AudioTrack) => {
+                          // TODO: Implémenter le drag des pistes audio indépendantes
+                          console.log('Drag audio track:', draggedTrack);
+                        }}
+                        onDragEnd={() => {}}
+                        onTrimStart={(e: React.MouseEvent, track: AudioTrack, type: 'start' | 'end') => {
+                          // TODO: Implémenter le trimming des pistes audio indépendantes
+                          console.log('Trim audio track:', track, type);
+                        }}
+                        onRemove={removeAudioTrack}
+                      />
+                    );
+                  })}
+                
+                {/* Indicateur de drop pour audio */}
+                {dropIndicator.visible && dropIndicator.trackIndex === trackIndex && (
+                  <div 
+                    className="absolute top-1 bottom-1 bg-green-500/30 border border-green-500 rounded"
+                    style={{
+                      left: `${dropIndicator.position}px`,
+                      width: `${dropIndicator.width}px`
+                    }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       
       {/* Panel des assets */}
       <div className="p-4 bg-gray-800 border-t border-gray-700">
@@ -1177,10 +1498,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           {videoAssets.map(asset => (
             <div 
               key={asset._id || asset.id}
-              className="bg-gray-800 rounded overflow-hidden cursor-pointer"
+              className="bg-gray-800 rounded overflow-hidden cursor-pointer relative"
               draggable
               onDragStart={() => handleDragStart(asset)}
-              onClick={() => addClip(asset)}
             >
               <div className="aspect-video relative">
                 {asset.metadata?.thumbnailUrl ? (
@@ -1203,8 +1523,33 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               </div>
               <div className="p-2">
                 <div className="text-white text-sm truncate">{asset.originalName}</div>
-                <div className="text-gray-400 text-xs">{formatTime(asset.duration)}</div>
+                <div className="text-gray-400 text-xs">
+                  {formatTime(asset.duration)}
+                  {assetHasAudio(asset) && <span className="ml-1 text-green-400">🎵</span>}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Clic: Vidéo {assetHasAudio(asset) && '+ Shift: Audio seulement'}
+                </div>
               </div>
+              
+              {/* Gestionnaires de clic */}
+              <div
+                className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
+                onClick={(e) => {
+                  if (e.shiftKey && assetHasAudio(asset)) {
+                    // Shift + clic = ajouter seulement l'audio
+                    addAudioTrack(asset, 1);
+                  } else {
+                    // Clic normal = ajouter comme clip vidéo (avec audio auto si présent)
+                    addClip(asset);
+                  }
+                }}
+                title={
+                  assetHasAudio(asset) 
+                    ? "Clic: Ajouter comme clip vidéo | Shift+Clic: Ajouter seulement l'audio"
+                    : "Clic: Ajouter comme clip vidéo"
+                }
+              />
             </div>
           ))}
         </div>
@@ -1213,7 +1558,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       {/* Propriétés du clip sélectionné */}
       {selectedClip && (
         <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <h3 className="text-white text-lg mb-2">Propriétés du clip</h3>
+          <h3 className="text-white text-lg mb-2">Propriétés du clip vidéo</h3>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -1264,6 +1609,86 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+      
+      {/* Propriétés de la piste audio sélectionnée */}
+      {selectedAudioTrackId && timeline.audioTracks.find(track => 
+        (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
+      ) && (
+        <div className="p-4 bg-gray-800 border-t border-gray-700">
+          <h3 className="text-white text-lg mb-2">Propriétés de la piste audio</h3>
+          
+          {(() => {
+            const selectedAudioTrack = timeline.audioTracks.find(track => 
+              (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
+            );
+            
+            if (!selectedAudioTrack) return null;
+            
+            const isLinkedTrack = !!selectedAudioTrack.linkedVideoClipId;
+            
+            return (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-400 mb-1">Type</label>
+                  <div className="text-white bg-gray-700 p-2 rounded">
+                    {isLinkedTrack ? 'Audio lié (vidéo)' : 'Audio indépendant'}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-gray-400 mb-1">Position dans la timeline</label>
+                  <div className="text-white bg-gray-700 p-2 rounded">
+                    {formatTime(selectedAudioTrack.startTime)} - {formatTime(selectedAudioTrack.endTime)}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-gray-400 mb-1">Volume</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={selectedAudioTrack.volume || 1}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      updateAudioTrack({
+                        ...selectedAudioTrack,
+                        volume: value
+                      });
+                    }}
+                    className="w-full"
+                    disabled={isLinkedTrack} // Désactiver pour les pistes liées (contrôlées par le clip vidéo)
+                  />
+                  {isLinkedTrack && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Le volume est contrôlé par le clip vidéo associé
+                    </div>
+                  )}
+                </div>
+                
+                {!isLinkedTrack && (
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => removeAudioTrack(selectedAudioTrack.id || selectedAudioTrack._id?.toString() || '')}
+                      className="bg-red-600 text-white px-4 py-2 rounded"
+                    >
+                      Supprimer la piste
+                    </button>
+                  </div>
+                )}
+                
+                {isLinkedTrack && (
+                  <div className="text-xs text-gray-400">
+                    Cette piste audio est automatiquement synchronisée avec son clip vidéo.
+                    Pour la modifier, ajustez le clip vidéo correspondant.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

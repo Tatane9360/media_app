@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
         audioSampleRate: metadata.audioSampleRate,
       },
       tags: formData.getAll("tags") as string[],
+      hasAudio: (metadata.audioChannels && metadata.audioChannels > 0) || false, // Détecter automatiquement
     });
 
     // Si un projectId est fourni, ajouter l'asset à ce projet

@@ -43,6 +43,10 @@ const VideoAssetSchema = new mongoose.Schema(
       audioSampleRate: { type: Number },
     },
     tags: [{ type: String }],
+    hasAudio: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
