@@ -3,9 +3,16 @@ import { connectDB } from "@/lib/mongodb";
 import { Article } from "@/models/Article";
 import { verifyToken } from "@/lib/jwt";
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+// Corrigez le typage des paramètres
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
+
+    // Await les params car ils sont maintenant une Promise dans Next.js 15
+    const params = await context.params;
 
     const token = request.cookies.get("token")?.value;
     if (!token) {
@@ -36,9 +43,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
+
+    // Await les params
+    const params = await context.params;
 
     const token = request.cookies.get("token")?.value;
     if (!token) {
