@@ -1,15 +1,23 @@
 'use client'
 
+import { 
+  Header, 
+  HeroSection, 
+  ActualitesCarousel, 
+  VideosSection, 
+  Footer 
+} from '@/components';
+
 export default function Home() {
-
-  // useEffect(() => {
-  //   // Redirection automatique vers la page d'admin
-  //   router.push('/admin')
-  // }, [router])
-
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-lg">Page principale</div>
+    <div className="min-h-screen bg-dark">
+      <Header />
+      <main>
+        <HeroSection />
+        <ActualitesCarousel />
+        <VideosSection />
+      </main>
+      <Footer />
     </div>
   )
 }
