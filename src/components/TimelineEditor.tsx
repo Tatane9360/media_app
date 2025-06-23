@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Timeline, Clip, AudioTrack, Effect } from '@/interface/iProject';
+import { Timeline, Clip, AudioTrack } from '@/interface/iProject';
 import { VideoAsset } from '@/interface/iVideoAsset';
-import { CloudinaryImage } from './CloudinaryImage';
 import { VideoThumbnail } from './VideoThumbnail';
 import VideoPreview from './VideoPreview';
 import { AudioTrackComponent } from './AudioTrackComponent';
+import { OptimizedImage } from './OptimizedImage';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -46,6 +46,42 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   // Calculer la durée visible en pixels
   const pixelsPerSecond = scale / 10; // 10px par seconde à 100% de zoom
   
+  // Générer un ID unique pour les clips et tracks
+  const generateUniqueId = useCallback((type: 'clip' | 'audio') => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 5);
+    return `${type}-${timestamp}-${random}`;
+  }, []);
+  
+  // Fonction utilitaire pour obtenir le nom d'affichage d'un asset
+  const getAssetDisplayName = useCallback((asset?: VideoAsset): string => {
+    if (!asset) return "Asset inconnu";
+    
+    // Préférer originalName s'il existe, sinon utiliser d'autres propriétés
+    if (asset.originalName) {
+      return asset.originalName;
+    }
+    
+    // Essayer d'extraire le nom du chemin de stockage
+    if (asset.storageUrl) {
+      try {
+        const url = new URL(asset.storageUrl);
+        const pathname = url.pathname;
+        const filename = pathname.split('/').pop();
+        if (filename && filename !== '') {
+          // Nettoyer le nom de fichier (supprimer les timestamps, etc.)
+          return filename.replace(/^\d+-/, '').replace(/\?.*$/, '');
+        }
+      } catch {
+        console.warn("Impossible d'extraire le nom du fichier de l'URL:", asset.storageUrl);
+      }
+    }
+    
+    // Fallback vers l'ID ou un nom générique
+    const assetId = asset._id?.toString() || asset.id?.toString();
+    return assetId ? `Asset ${assetId.substring(0, 8)}...` : "Asset sans nom";
+  }, []);
+
   // Fonction utilitaire pour détecter si un asset a de l'audio
   const assetHasAudio = useCallback((asset: VideoAsset): boolean => {
     // Vérifier d'abord la propriété hasAudio si elle est définie
@@ -82,8 +118,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return null;
     }
     
+    const trackId = generateUniqueId('audio');
     const audioTrack: AudioTrack = {
-      id: `audio-linked-${videoClip.id}`,
+      id: trackId,
       assetId: videoClip.assetId,
       asset: videoClip.asset,
       trackIndex: 0, // Piste audio principale (pour l'audio des vidéos)
@@ -96,35 +133,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     };
     
     return audioTrack;
-  }, [assetHasAudio]);
-  
-  /**
-   * Mettre à jour une piste audio liée lorsque son clip vidéo change
-   */
-  const updateLinkedAudioTrack = useCallback((updatedVideoClip: Clip): AudioTrack | null => {
-    if (!updatedVideoClip.asset || !assetHasAudio(updatedVideoClip.asset)) {
-      return null;
-    }
-    
-    const videoClipId = updatedVideoClip.id || updatedVideoClip._id?.toString();
-    const existingAudioTrack = timeline.audioTracks.find(
-      track => track.linkedVideoClipId === videoClipId
-    );
-    
-    if (!existingAudioTrack) {
-      return createLinkedAudioTrack(updatedVideoClip);
-    }
-    
-    // Synchroniser les propriétés avec le clip vidéo
-    const updatedAudioTrack: AudioTrack = {
-      ...existingAudioTrack,
-      startTime: updatedVideoClip.startTime,
-      endTime: updatedVideoClip.endTime,
-      volume: updatedVideoClip.volume || existingAudioTrack.volume || 1
-    };
-    
-    return updatedAudioTrack;
-  }, [timeline.audioTracks, createLinkedAudioTrack, assetHasAudio]);
+  }, [assetHasAudio, generateUniqueId]);
   
   // Fonction d'aide pour associer les assets vidéo aux clips
   const ensureClipsHaveAssets = useCallback(() => {
@@ -156,14 +165,22 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     // Vérifier si des clips ont besoin d'être mis à jour
     let hasUpdatedClips = false;
-    const updatedClips = timeline.clips.map((clip, index) => {
+    const updatedClips = timeline.clips.map((clip) => {
       // Normaliser l'ID du clip (gérer à la fois string et ObjectId)
       const clipAssetId = clip.assetId?.toString();
       
       // Si pas d'assetId, on ne peut pas associer
       if (!clipAssetId) {
-        console.warn(`Clip ${index} sans assetId:`, clip);
+        console.warn(`Clip sans assetId:`, clip);
         return clip;
+      }
+      
+      // S'assurer que le clip a un ID unique
+      if (!clip.id && !clip._id) {
+        hasUpdatedClips = true;
+        const newId = generateUniqueId('clip');
+        console.log(`Attribution d'un nouvel ID au clip: ${newId}`);
+        clip = { ...clip, id: newId };
       }
       
       // Si le clip a déjà un asset valide, vérifier qu'il est complet
@@ -175,10 +192,11 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           if (freshAsset && freshAsset.storageUrl && (
               !clip.asset.metadata || 
               !clip.asset.duration || 
+              !clip.asset.originalName || // Forcer la mise à jour si le nom manque
               (freshAsset.updatedAt && clip.asset.updatedAt && 
                new Date(freshAsset.updatedAt) > new Date(clip.asset.updatedAt))
             )) {
-            console.log(`Mise à jour de l'asset pour le clip ${clip.id} (${clipAssetId})`);
+            console.log(`Mise à jour de l'asset pour le clip ${clip.id} (${clipAssetId}) - nom manquant ou asset plus récent`);
             hasUpdatedClips = true;
             return { ...clip, asset: freshAsset };
           }
@@ -213,7 +231,104 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     }
     
     // console.log("=== Fin de l'association des assets aux clips ===");
-  }, [timeline, videoAssets, onChange]);
+  }, [timeline, videoAssets, onChange, generateUniqueId]);
+  
+  // Fonction d'aide pour associer les assets vidéo aux pistes audio
+  const ensureAudioTracksHaveAssets = useCallback(() => {
+    // Si pas de pistes audio, on ne fait rien
+    if (!timeline.audioTracks.length) {
+      return;
+    }
+    
+    // Si pas d'assets, loguer l'erreur mais continuer
+    if (!videoAssets.length) {
+      console.warn("Aucun asset vidéo disponible, impossible d'associer les pistes audio");
+      return;
+    }
+
+    console.log("=== Début de l'association des assets aux pistes audio ===");
+    console.log(`Assets disponibles: ${videoAssets.length}`);
+    console.log(`Pistes audio à associer: ${timeline.audioTracks.length}`);
+    
+    // Map pour accéder rapidement aux assets par ID
+    const assetsMap = new Map();
+    videoAssets.forEach(asset => {
+      const assetId = asset._id?.toString() || asset.id?.toString();
+      if (assetId) {
+        assetsMap.set(assetId, asset);
+        console.log(`Asset mappé: ${assetId} -> ${asset.originalName || 'pas de nom'}`);
+      }
+    });
+    
+    // Vérifier si des pistes audio ont besoin d'être mises à jour
+    let hasUpdatedTracks = false;
+    const updatedTracks = timeline.audioTracks.map((track) => {
+      const trackAssetId = track.assetId?.toString();
+      
+      console.log(`Traitement de la piste audio: ${track.id || 'pas d\'ID'}, assetId: ${trackAssetId}, asset actuel: ${track.asset?.originalName || 'pas de nom'}`);
+      
+      // Si pas d'assetId, on ne peut pas associer
+      if (!trackAssetId) {
+        console.warn(`Piste audio sans assetId:`, track);
+        return track;
+      }
+      
+      // S'assurer que la piste a un ID unique
+      if (!track.id && !track._id) {
+        hasUpdatedTracks = true;
+        const newId = generateUniqueId('audio');
+        console.log(`Attribution d'un nouvel ID à la piste audio: ${newId}`);
+        track = { ...track, id: newId };
+      }
+      
+      // Si la piste a déjà un asset valide, vérifier qu'il est complet
+      if (track.asset) {
+        if (track.asset.storageUrl) {
+          const freshAsset = assetsMap.get(trackAssetId);
+          if (freshAsset && freshAsset.storageUrl) {
+            // Forcer la mise à jour si le nom manque ou si l'asset est plus récent
+            const needsUpdate = (
+              !track.asset.originalName || // Nom manquant
+              !track.asset.metadata || 
+              !track.asset.duration || 
+              (freshAsset.updatedAt && track.asset.updatedAt && 
+               new Date(freshAsset.updatedAt) > new Date(track.asset.updatedAt))
+            );
+            
+            if (needsUpdate) {
+              console.log(`Mise à jour de l'asset pour la piste audio ${track.id} (${trackAssetId}) - raison: ${!track.asset.originalName ? 'nom manquant' : 'asset plus récent'}`);
+              hasUpdatedTracks = true;
+              return { ...track, asset: freshAsset };
+            }
+          }
+          
+          return track;
+        }
+      }
+      
+      // Chercher l'asset correspondant
+      const matchingAsset = assetsMap.get(trackAssetId);
+      if (matchingAsset) {
+        hasUpdatedTracks = true;
+        console.log(`Asset trouvé pour la piste audio ${track.id}, assetId: ${trackAssetId}`);
+        return { ...track, asset: matchingAsset };
+      } else {
+        console.warn(`⚠️ Aucun asset trouvé pour la piste audio avec l'ID: ${trackAssetId}`);
+      }
+      
+      return track;
+    });
+
+    // Si des pistes ont été mises à jour, mettre à jour la timeline
+    if (hasUpdatedTracks) {
+      onChange({
+        ...timeline,
+        audioTracks: updatedTracks
+      });
+    }
+    
+    console.log("=== Fin de l'association des assets aux pistes audio ===");
+  }, [timeline, videoAssets, onChange, generateUniqueId]);
   
   // Exécuter l'association des assets lors du chargement initial et des mises à jour
   useEffect(() => {
@@ -253,8 +368,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     // (pour éviter de déclencher deux mises à jour consécutives)
     if (!idsUpdated) {
       ensureClipsHaveAssets();
+      ensureAudioTracksHaveAssets();
     }
-  }, [ensureClipsHaveAssets, timeline, onChange]);
+  }, [ensureClipsHaveAssets, ensureAudioTracksHaveAssets, timeline, onChange]);
   
   // Gestion du défilement de la timeline
   const handleTimelineScroll = () => {
@@ -283,6 +399,19 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return;
     }
     
+    // Vérifier s'il existe déjà un clip pour cet asset pour éviter la duplication
+    const assetId = asset._id?.toString() || asset.id?.toString();
+    const existingClip = timeline.clips.find(clip => 
+      (clip.assetId?.toString() === assetId) && 
+      (clip.trackIndex === trackIndex)
+    );
+    
+    if (existingClip) {
+      console.log(`Clip déjà présent pour l'asset ${assetId} sur la piste ${trackIndex}`);
+      setSelectedClipId(existingClip.id || existingClip._id?.toString() || null);
+      return;
+    }
+    
     // Comportement normal : ajouter comme clip vidéo (avec audio automatique si présent)
     // Calculer la position de départ du nouveau clip
     let startTime = currentTime;
@@ -294,9 +423,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       startTime = maxEndTime;
     }
     
+    const clipId = generateUniqueId('clip');
     const newClip: Clip = {
-      id: `clip-${Date.now()}`,
-      assetId: asset._id || asset.id,
+      id: clipId,
+      assetId: assetId,
       asset, // Pour l'UI
       trackIndex,
       startTime,
@@ -410,9 +540,24 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   
   // Ajouter une piste audio
   const addAudioTrack = (asset: VideoAsset, trackIndex = 1) => { // trackIndex = 1 pour éviter la piste 0 réservée aux vidéos
-    const newAudioTrack: AudioTrack = {
-      id: `audio-${Date.now()}`,
-      assetId: asset._id || asset.id,
+    // Vérifier s'il existe déjà une piste audio pour cet asset sur cette piste pour éviter la duplication
+    const assetId = asset._id?.toString() || asset.id?.toString();
+    const existingTrack = timeline.audioTracks.find(track => 
+      (track.assetId?.toString() === assetId) && 
+      (track.trackIndex === trackIndex) &&
+      !track.linkedVideoClipId // Seulement pour les pistes indépendantes
+    );
+    
+    if (existingTrack) {
+      console.log(`Piste audio déjà présente pour l'asset ${assetId} sur la piste ${trackIndex}`);
+      setSelectedAudioTrackId(existingTrack.id || existingTrack._id?.toString() || null);
+      return;
+    }
+    
+    const trackId = generateUniqueId('audio');
+    let newAudioTrack: AudioTrack = {
+      id: trackId,
+      assetId: assetId,
       asset, // Pour l'UI
       trackIndex,
       startTime: currentTime,
@@ -423,6 +568,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       // Pas de linkedVideoClipId pour les pistes indépendantes
     };
     
+    // Ajuster la position pour éviter les chevauchements
+    newAudioTrack = adjustAudioTrackPosition(timeline.audioTracks, newAudioTrack);
+    
     const newTimeline = {
       ...timeline,
       audioTracks: [...timeline.audioTracks, newAudioTrack],
@@ -430,20 +578,60 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     };
     
     onChange(newTimeline);
-    setSelectedAudioTrackId(newAudioTrack.id as string);
+    setSelectedAudioTrackId(trackId);
   };
   
   // Modifier une piste audio
   const updateAudioTrack = useCallback((updatedTrack: AudioTrack) => {
-    console.log(`Mise à jour de la piste audio ${updatedTrack.id}:`, updatedTrack);
+    const trackId = updatedTrack.id || updatedTrack._id?.toString();
+    console.log(`Mise à jour de la piste audio ${trackId}:`, updatedTrack);
     
-    const existingTrackIndex = timeline.audioTracks.findIndex(track => 
-      (track.id === updatedTrack.id) || (track._id?.toString() === updatedTrack.id)
-    );
+    if (!trackId) {
+      console.error("Impossible de mettre à jour une piste audio sans ID");
+      return;
+    }
+    
+    const existingTrackIndex = timeline.audioTracks.findIndex(track => {
+      const existingTrackId = track.id || track._id?.toString();
+      return existingTrackId === trackId;
+    });
     
     if (existingTrackIndex === -1) {
-      console.error(`Piste audio introuvable: ${updatedTrack.id}`);
+      console.error(`Piste audio introuvable: ${trackId}`);
+      console.log("Pistes disponibles:", timeline.audioTracks.map(t => ({
+        id: t.id || t._id?.toString(),
+        assetId: t.assetId,
+        trackIndex: t.trackIndex
+      })));
       return;
+    }
+    
+    // Vérifier s'il y a duplication avec une piste existante (pour les pistes indépendantes)
+    if (!updatedTrack.linkedVideoClipId) {
+      const assetId = updatedTrack.assetId?.toString();
+      const duplicateTrack = timeline.audioTracks.find((track, index) => {
+        const existingTrackId = track.id || track._id?.toString();
+        const existingAssetId = track.assetId?.toString();
+        
+        return (
+          index !== existingTrackIndex && // Différent de la piste qu'on modifie
+          existingAssetId === assetId && // Même asset
+          track.trackIndex === updatedTrack.trackIndex && // Même piste
+          !track.linkedVideoClipId && // Piste indépendante
+          existingTrackId !== trackId // Différent ID (sécurité supplémentaire)
+        );
+      });
+      
+      if (duplicateTrack) {
+        console.log(`Duplication détectée lors de la mise à jour de la piste audio. Suppression de la piste existante.`);
+        // Supprimer la piste en double et continuer avec la mise à jour
+        const newAudioTracks = timeline.audioTracks.filter((_, index) => 
+          index !== timeline.audioTracks.findIndex(t => 
+            (t.id || t._id?.toString()) === (duplicateTrack.id || duplicateTrack._id?.toString())
+          )
+        );
+        timeline.audioTracks = newAudioTracks;
+      }
     }
     
     const newAudioTracks = [...timeline.audioTracks];
@@ -479,30 +667,24 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     setSelectedAudioTrackId(null);
   };
   
-  // Ajouter un effet à un clip
-  const addEffectToClip = (clipId: string, effect: Effect) => {
-    const clip = timeline.clips.find(c => c.id === clipId);
-    if (!clip) return;
-    
-    const updatedClip = {
-      ...clip,
-      effects: [...(clip.effects || []), effect]
-    };
-    
-    updateClip(updatedClip);
-  };
-  
   // Gestion du glisser-déposer
   const handleDragStart = (asset: VideoAsset) => {
     setDraggedAsset(asset);
+    setIsDragging(true);
   };
   
   // Pour le drag & drop des clips déjà présents dans la timeline
   const [draggedClip, setDraggedClip] = useState<Clip | null>(null);
   const [draggedClipOffsetX, setDraggedClipOffsetX] = useState<number>(0);
   
-  // États pour le trimming des clips - ces états sont utilisés pour l'UI uniquement, 
-  // la logique réelle utilise des variables locales pour plus de fiabilité
+  // Pour le drag & drop des pistes audio indépendantes
+  const [draggedAudioTrack, setDraggedAudioTrack] = useState<AudioTrack | null>(null);
+  const [draggedAudioOffsetX, setDraggedAudioOffsetX] = useState<number>(0);
+  
+  // État global pour tracker si on est en cours de drag
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  
+  // États pour le trimming des clips
   const [trimmingClip, setTrimmingClip] = useState<Clip | null>(null);
   const [trimmingType, setTrimmingType] = useState<'start' | 'end' | null>(null);
   const [trimmingStartX, setTrimmingStartX] = useState<number>(0);
@@ -514,10 +696,38 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     assetDuration: number;
   } | null>(null);
   
-  // Commencer à glisser un clip existant
+  // Commencer à glisser une piste audio existante
+  const handleAudioTrackDragStart = (e: React.DragEvent, track: AudioTrack) => {
+    e.stopPropagation();
+    setDraggedAudioTrack(track);
+    setIsDragging(true);
+    
+    // Calculer l'offset pour maintenir la position relative du pointeur dans la piste
+    const trackElement = e.currentTarget as HTMLElement;
+    const trackRect = trackElement.getBoundingClientRect();
+    const offsetX = e.clientX - trackRect.left;
+    setDraggedAudioOffsetX(offsetX);
+    
+    // Définir les données de transfert
+    const trackId = track.id || track._id?.toString() || '';
+    e.dataTransfer.setData('text/plain', trackId);
+    e.dataTransfer.effectAllowed = 'move';
+    
+    // Appliquer une classe visuelle
+    trackElement.classList.add('opacity-50');
+  };
+
+  // Gérer la fin du glisser-déposer d'une piste audio
+  const handleAudioTrackDragEnd = () => {
+    setDraggedAudioTrack(null);
+    setDraggedAudioOffsetX(0);
+    setIsDragging(false);
+    setDropIndicator(prev => ({ ...prev, visible: false }));
+  };  // Commencer à glisser un clip existant
   const handleClipDragStart = (e: React.DragEvent, clip: Clip) => {
     e.stopPropagation();
     setDraggedClip(clip);
+    setIsDragging(true);
     
     // Calculer l'offset pour maintenir la position relative du pointeur dans le clip
     const clipElement = e.currentTarget as HTMLElement;
@@ -533,10 +743,11 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     // Appliquer une classe visuelle
     clipElement.classList.add('opacity-50');
   };
-  
+
   // Gérer la fin du glisser-déposer d'un clip
   const handleClipDragEnd = () => {
     setDraggedClip(null);
+    setIsDragging(false);
     setDropIndicator(prev => ({ ...prev, visible: false }));
   };
   
@@ -546,7 +757,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const dropTime = x / pixelsPerSecond;
     
     // Mise à jour de l'indicateur de drop
     let width = 100; // largeur par défaut
@@ -557,6 +767,11 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       const clipDuration = draggedClip.endTime - draggedClip.startTime;
       width = clipDuration * pixelsPerSecond;
       position = x - draggedClipOffsetX;
+    } else if (draggedAudioTrack) {
+      // Si on déplace une piste audio existante, utiliser sa durée actuelle
+      const trackDuration = draggedAudioTrack.endTime - draggedAudioTrack.startTime;
+      width = trackDuration * pixelsPerSecond;
+      position = x - draggedAudioOffsetX;
     } else if (draggedAsset) {
       // Si on ajoute un nouvel asset, utiliser sa durée
       width = draggedAsset.duration * pixelsPerSecond;
@@ -580,7 +795,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const dropTime = x / pixelsPerSecond;
     
     // Masquer l'indicateur de drop
     setDropIndicator(prev => ({ ...prev, visible: false }));
@@ -604,18 +818,43 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       // Ajuster la position pour éviter les chevauchements UNIQUEMENT avec les autres clips
       // en excluant le clip en cours de déplacement
       const clipId = draggedClip.id || draggedClip._id?.toString();
-      const otherClips = timeline.clips.filter(c => {
-        const cId = c.id || c._id?.toString();
-        return cId !== clipId;
-      });
-      // console.log(`Vérification des chevauchements avec ${otherClips.length} autres clips`);
       
-      updatedClip = adjustClipPosition(otherClips, updatedClip);
+      updatedClip = adjustClipPosition(timeline.clips, updatedClip, clipId);
       
       // Mettre à jour UNIQUEMENT le clip déplacé, pas tous les clips
       updateClip(updatedClip);
       setSelectedClipId(updatedClip.id || updatedClip._id?.toString() || null);
       setDraggedClip(null);
+      setIsDragging(false);
+    }
+    else if (draggedAudioTrack && !draggedAudioTrack.linkedVideoClipId) {
+      // Déplacer une piste audio indépendante existante
+      const trackDuration = draggedAudioTrack.endTime - draggedAudioTrack.startTime;
+      const newStartTime = Math.max(0, (x - draggedAudioOffsetX) / pixelsPerSecond);
+      
+      const trackId = draggedAudioTrack.id || draggedAudioTrack._id?.toString() || 'unknown';
+      console.log("Déplacement de la piste audio:", trackId);
+      console.log("Nouvelle position:", newStartTime);
+      
+      // Créer une copie mise à jour de la piste audio
+      let updatedAudioTrack: AudioTrack = {
+        ...draggedAudioTrack,
+        trackIndex,
+        startTime: newStartTime,
+        endTime: newStartTime + trackDuration
+      };
+      
+      // Ajuster la position pour éviter les chevauchements avec les autres pistes audio
+      updatedAudioTrack = adjustAudioTrackPosition(timeline.audioTracks, updatedAudioTrack, trackId);
+      
+      console.log(`Mise à jour de la piste audio ${trackId}:`, updatedAudioTrack);
+      
+      // Mettre à jour la piste audio
+      updateAudioTrack(updatedAudioTrack);
+      setSelectedAudioTrackId(trackId);
+      setDraggedAudioTrack(null);
+      setDraggedAudioOffsetX(0);
+      setIsDragging(false);
     }
     else if (draggedAsset) {
       // Déterminer si on ajoute un clip vidéo ou une piste audio
@@ -626,9 +865,25 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         // Ajouter une piste audio indépendante
         const dropTime = Math.max(0, (x - 50) / pixelsPerSecond); // 50px d'offset pour centrer
         
-        const newAudioTrack: AudioTrack = {
-          id: `audio-${Date.now()}`,
-          assetId: draggedAsset._id || draggedAsset.id,
+        // Vérifier s'il existe déjà une piste audio pour cet asset sur cette piste
+        const assetId = draggedAsset._id?.toString() || draggedAsset.id?.toString();
+        const existingTrack = timeline.audioTracks.find(track => 
+          (track.assetId?.toString() === assetId) && 
+          (track.trackIndex === trackIndex) &&
+          !track.linkedVideoClipId // Seulement pour les pistes indépendantes
+        );
+        
+        if (existingTrack) {
+          console.log(`Piste audio déjà présente pour l'asset ${assetId} sur la piste ${trackIndex}`);
+          setSelectedAudioTrackId(existingTrack.id || existingTrack._id?.toString() || null);
+          setDraggedAsset(null);
+          return;
+        }
+        
+        const trackId = generateUniqueId('audio');
+        let newAudioTrack: AudioTrack = {
+          id: trackId,
+          assetId: assetId,
           asset: draggedAsset,
           trackIndex,
           startTime: dropTime,
@@ -639,6 +894,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           // Pas de linkedVideoClipId car c'est une piste indépendante
         };
         
+        // Ajuster la position pour éviter les chevauchements
+        newAudioTrack = adjustAudioTrackPosition(timeline.audioTracks, newAudioTrack);
+        
         const newTimeline = {
           ...timeline,
           audioTracks: [...timeline.audioTracks, newAudioTrack],
@@ -646,13 +904,31 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         };
         
         onChange(newTimeline);
-        setSelectedAudioTrackId(newAudioTrack.id as string);
+        setSelectedAudioTrackId(trackId);
         setDraggedAsset(null);
+        setIsDragging(false);
       } else {
         // Ajouter un clip vidéo (comportement original)
+        const dropTime = Math.max(0, (x - 50) / pixelsPerSecond);
+        
+        // Vérifier s'il existe déjà un clip pour cet asset sur cette piste pour éviter la duplication
+        const assetId = draggedAsset._id?.toString() || draggedAsset.id?.toString();
+        const existingClip = timeline.clips.find(clip => 
+          (clip.assetId?.toString() === assetId) && 
+          (clip.trackIndex === trackIndex)
+        );
+        
+        if (existingClip) {
+          console.log(`Clip déjà présent pour l'asset ${assetId} sur la piste ${trackIndex}`);
+          setSelectedClipId(existingClip.id || existingClip._id?.toString() || null);
+          setDraggedAsset(null);
+          return;
+        }
+        
+        const clipId = generateUniqueId('clip');
         let newClip: Clip = {
-          id: `clip-${Date.now()}`,
-          assetId: draggedAsset._id || draggedAsset.id,
+          id: clipId,
+          assetId: assetId,
           asset: draggedAsset, // Pour l'UI
           trackIndex,
           startTime: dropTime,
@@ -683,8 +959,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         };
         
         onChange(newTimeline);
-        setSelectedClipId(newClip.id as string);
+        setSelectedClipId(clipId);
         setDraggedAsset(null);
+        setIsDragging(false);
       }
       setDropIndicator(prev => ({ ...prev, visible: false }));
     }
@@ -740,11 +1017,13 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   }, [playing, currentTime, pixelsPerSecond]);
   
   // Ajuster la position d'un clip pour éviter les chevauchements
-  const adjustClipPosition = (clips: Clip[], newClip: Clip): Clip => {
-    // Filtrer les clips sur la même piste
-    const clipsOnTrack = clips.filter(clip => 
-      clip.trackIndex === newClip.trackIndex
-    );
+  const adjustClipPosition = (clips: Clip[], newClip: Clip, excludeClipId?: string): Clip => {
+    // Filtrer les clips sur la même piste et exclure le clip spécifié si fourni
+    const clipsOnTrack = clips.filter(clip => {
+      const clipId = clip.id || clip._id?.toString();
+      const shouldExclude = excludeClipId && (clipId === excludeClipId);
+      return clip.trackIndex === newClip.trackIndex && !shouldExclude;
+    });
     
     // Si aucun clip sur cette piste, pas besoin d'ajustement
     if (clipsOnTrack.length === 0) {
@@ -752,7 +1031,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       return newClip;
     }
     
-    // console.log(`Vérification des chevauchements sur la piste ${newClip.trackIndex} avec ${clipsOnTrack.length} clips`);
+    console.log(`Vérification des chevauchements sur la piste ${newClip.trackIndex} avec ${clipsOnTrack.length} clips`);
     
     // Vérifier les chevauchements
     const adjustedClip = { ...newClip };
@@ -765,9 +1044,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       iterations++;
       
       for (const clip of clipsOnTrack) {
-        // Ignorer si c'est le même clip (bien que cela ne devrait pas se produire)
-        if (clip.id === newClip.id) continue;
-        
         // Vérifier si les intervalles se chevauchent
         if (
           adjustedClip.startTime < clip.endTime && 
@@ -794,6 +1070,62 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     } while (overlap);
     
     return adjustedClip;
+  };
+  
+  // Ajuster la position d'une piste audio pour éviter les chevauchements
+  const adjustAudioTrackPosition = (tracks: AudioTrack[], newTrack: AudioTrack, excludeTrackId?: string): AudioTrack => {
+    // Filtrer les pistes sur la même piste et exclure la piste spécifiée si fournie
+    const tracksOnSameLine = tracks.filter(track => {
+      const trackId = track.id || track._id?.toString();
+      const shouldExclude = excludeTrackId && (trackId === excludeTrackId);
+      return track.trackIndex === newTrack.trackIndex && !shouldExclude && !track.linkedVideoClipId;
+    });
+    
+    // Si aucune piste sur cette ligne, pas besoin d'ajustement
+    if (tracksOnSameLine.length === 0) {
+      console.log("Aucune autre piste audio sur cette ligne, pas d'ajustement nécessaire");
+      return newTrack;
+    }
+    
+    console.log(`Vérification des chevauchements de piste audio sur la ligne ${newTrack.trackIndex} avec ${tracksOnSameLine.length} pistes`);
+    
+    // Vérifier les chevauchements
+    const adjustedTrack = { ...newTrack };
+    let overlap = false;
+    let iterations = 0;
+    const maxIterations = 10; // Limite pour éviter les boucles infinies
+    
+    do {
+      overlap = false;
+      iterations++;
+      
+      for (const track of tracksOnSameLine) {
+        // Vérifier si les intervalles se chevauchent
+        if (
+          adjustedTrack.startTime < track.endTime && 
+          adjustedTrack.endTime > track.startTime
+        ) {
+          console.log(`Chevauchement de piste audio détecté avec ${track.id} (${track.startTime} - ${track.endTime})`);
+          
+          // Placer la piste après celle qui chevauche
+          adjustedTrack.startTime = track.endTime;
+          adjustedTrack.endTime = adjustedTrack.startTime + (newTrack.endTime - newTrack.startTime);
+          
+          console.log(`Nouvelle position de piste audio: ${adjustedTrack.startTime} - ${adjustedTrack.endTime}`);
+          
+          overlap = true;
+          break;
+        }
+      }
+      
+      // Éviter les boucles infinies
+      if (iterations >= maxIterations) {
+        console.warn("Nombre maximum d'itérations atteint pour l'ajustement de position de piste audio");
+        break;
+      }
+    } while (overlap);
+    
+    return adjustedTrack;
   };
   
   // Calculer les marqueurs de temps pour la règle temporelle
@@ -900,7 +1232,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       // console.log("=== VÉRIFICATION DES CLIPS INITIAUX ===");
       // console.log(`${timeline.clips.length} clips chargés`);
       
-      timeline.clips.forEach((clip, index) => {
+      timeline.clips.forEach((clip) => {
         if (clip.asset && clip.asset.storageUrl) {
           // console.log(`Clip ${index} - URL originale:`, clip.asset.storageUrl);
           // console.log(`Clip ${index} - URL transformée:`, getCloudinaryThumbnail(clip.asset.storageUrl));
@@ -1168,6 +1500,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           audioTracks={timeline.audioTracks}
           currentTime={currentTime}
           playing={playing}
+          isDragging={isDragging}
           onTimeUpdate={(time) => setCurrentTime(time)}
           onEnded={() => setPlaying(false)}
         />
@@ -1309,8 +1642,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               {timeline.clips
                 .filter(clip => clip.trackIndex === trackIndex)
                 .map((clip, index) => {
-                  // Utiliser un identifiant de secours si ni clip.id ni clip._id n'est défini
-                  const clipKey = clip.id || clip._id?.toString() || `fallback-${trackIndex}-${index}`;
+                  // Créer une clé unique en combinant plusieurs éléments
+                  const baseId = clip.id || clip._id?.toString();
+                  const assetId = clip.assetId?.toString();
+                  const clipKey = baseId || `clip-${trackIndex}-${index}-${assetId || 'unknown'}-${clip.startTime}`;
                   const isSelected = (clip.id === selectedClipId) || (clip._id?.toString() === selectedClipId);
                   
                   return (
@@ -1343,13 +1678,15 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                       {/* Affichage du contenu du clip */}
                       {clip.asset && clip.asset.storageUrl ? (
                         <div className="w-full h-full relative">
-                          <img 
+                          <OptimizedImage 
                             src={getCloudinaryThumbnail(clip.asset.storageUrl)} 
                             alt={`Clip ${clip.id || clip._id}`}
+                            width={200}
+                            height={112}
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 truncate">
-                            {clip.asset.originalName || "Sans titre"}
+                            {getAssetDisplayName(clip.asset)}
                             {clip.asset.duration ? ` (${clip.asset.duration.toFixed(1)}s)` : ''}
                           </div>
                         </div>
@@ -1412,8 +1749,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               
               {timeline.audioTracks
                 .filter(track => track.linkedVideoClipId) // Afficher seulement les pistes liées
-                .map((track) => {
-                  const trackKey = track.id || track._id?.toString() || 'unknown';
+                .map((track, index) => {
+                  const baseId = track.id || track._id?.toString();
+                  const assetId = track.assetId?.toString();
+                  const trackKey = baseId || `audio-linked-${index}-${assetId || 'unknown'}-${track.startTime}`;
                   const isSelected = selectedAudioTrackId === trackKey;
                   
                   return (
@@ -1449,8 +1788,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 
                 {timeline.audioTracks
                   .filter(track => !track.linkedVideoClipId && track.trackIndex === trackIndex)
-                  .map((track) => {
-                    const trackKey = track.id || track._id?.toString() || 'unknown';
+                  .map((track, index) => {
+                    const baseId = track.id || track._id?.toString();
+                    const assetId = track.assetId?.toString();
+                    const trackKey = baseId || `audio-track-${trackIndex}-${index}-${assetId || 'unknown'}-${track.startTime}`;
                     const isSelected = selectedAudioTrackId === trackKey;
                     
                     return (
@@ -1462,11 +1803,8 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                         isSelected={isSelected}
                         pixelsPerSecond={pixelsPerSecond}
                         onSelect={setSelectedAudioTrackId}
-                        onDragStart={(e: React.DragEvent, draggedTrack: AudioTrack) => {
-                          // TODO: Implémenter le drag des pistes audio indépendantes
-                          console.log('Drag audio track:', draggedTrack);
-                        }}
-                        onDragEnd={() => {}}
+                        onDragStart={handleAudioTrackDragStart}
+                        onDragEnd={handleAudioTrackDragEnd}
                         onTrimStart={(e: React.MouseEvent, track: AudioTrack, type: 'start' | 'end') => {
                           // TODO: Implémenter le trimming des pistes audio indépendantes
                           console.log('Trim audio track:', track, type);
@@ -1504,9 +1842,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             >
               <div className="aspect-video relative">
                 {asset.metadata?.thumbnailUrl ? (
-                  <img 
+                  <OptimizedImage 
                     src={asset.metadata.thumbnailUrl} 
-                    alt={asset.originalName}
+                    alt={getAssetDisplayName(asset)}
                     width={160}
                     height={90}
                     className="w-full h-full object-cover"
@@ -1522,7 +1860,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 )}
               </div>
               <div className="p-2">
-                <div className="text-white text-sm truncate">{asset.originalName}</div>
+                <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
                 <div className="text-gray-400 text-xs">
                   {formatTime(asset.duration)}
                   {assetHasAudio(asset) && <span className="ml-1 text-green-400">🎵</span>}

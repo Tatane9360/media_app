@@ -1,5 +1,35 @@
 import React from 'react';
 import { AudioTrack } from '@/interface/iProject';
+import { VideoAsset } from '@/interface/iVideoAsset';
+
+// Fonction utilitaire pour obtenir le nom d'affichage d'un asset (même logique que TimelineEditor)
+const getAssetDisplayName = (asset?: VideoAsset): string => {
+  if (!asset) return "Audio";
+  
+  // Préférer originalName s'il existe, sinon utiliser d'autres propriétés
+  if (asset.originalName) {
+    return asset.originalName;
+  }
+  
+  // Essayer d'extraire le nom du chemin de stockage
+  if (asset.storageUrl) {
+    try {
+      const url = new URL(asset.storageUrl);
+      const pathname = url.pathname;
+      const filename = pathname.split('/').pop();
+      if (filename && filename !== '') {
+        // Nettoyer le nom de fichier (supprimer les timestamps, etc.)
+        return filename.replace(/^\d+-/, '').replace(/\?.*$/, '');
+      }
+    } catch {
+      // Ignorer les erreurs de parsing d'URL
+    }
+  }
+  
+  // Fallback vers l'ID ou un nom générique
+  const assetId = asset._id?.toString() || asset.id?.toString();
+  return assetId ? `Audio ${assetId.substring(0, 8)}...` : "Audio sans nom";
+};
 
 interface AudioTrackComponentProps {
   track: AudioTrack;
@@ -81,7 +111,7 @@ export const AudioTrackComponent: React.FC<AudioTrackComponentProps> = ({
 
       {/* Nom du clip audio */}
       <div className="absolute bottom-0 left-0 right-0 text-white text-xs px-1 truncate bg-black bg-opacity-50">
-        {track.asset ? track.asset.originalName : "Audio"}
+        {getAssetDisplayName(track.asset)}
         {track.linkedVideoClipId && " (lié)"}
       </div>
 

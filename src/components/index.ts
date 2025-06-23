@@ -4,3 +4,4 @@ export * from "./CloudinaryImage";
 export * from "./CloudinaryVideoThumbnail";
 export * from "./VideoThumbnail";
 export { default as VideoPreview } from "./VideoPreview";
+export * from "./OptimizedImage";

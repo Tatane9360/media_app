@@ -81,6 +81,7 @@ interface VideoPreviewProps {
   audioTracks: AudioTrack[];
   currentTime: number;
   playing: boolean;
+  isDragging?: boolean;
   onTimeUpdate: (time: number) => void;
   onEnded: () => void;
 }
@@ -93,6 +94,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   audioTracks,
   currentTime,
   playing,
+  isDragging = false,
   onTimeUpdate,
   onEnded
 }) => {
@@ -397,8 +399,8 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
       const maxPosition = assetDuration > 0 ? assetDuration - trimEnd : 9999;
       const safeVideoPosition = Math.min(videoPosition, maxPosition);
       
-      // Ne mettre à jour que si la différence est significative
-      if (Math.abs(videoRef.current.currentTime - safeVideoPosition) > 0.1) {
+      // Ne mettre à jour que si la différence est significative ET qu'on n'est pas en cours de drag
+      if (!isDragging && Math.abs(videoRef.current.currentTime - safeVideoPosition) > 0.1) {
         console.log(`Mise à jour position: clipTime=${clipPosition.toFixed(3)}s, ` + 
                     `videoPosition=${safeVideoPosition.toFixed(3)}s ` +
                     `(trimStart=${trimStart.toFixed(3)}s, trimEnd=${trimEnd.toFixed(3)}s, ` + 
@@ -406,7 +408,7 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
         setVideoTime(safeVideoPosition);
       }
     }
-  }, [clips, sortedClips, audioTracks, currentTime, activeClip, getActiveClipAtTime, onTimeUpdate]);
+  }, [clips, sortedClips, audioTracks, currentTime, activeClip, getActiveClipAtTime, onTimeUpdate, isDragging]);
   
   // Précharger les prochains clips
   useEffect(() => {
