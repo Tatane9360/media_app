@@ -20,10 +20,18 @@ interface Article {
     updatedAt: string;
 }
 
-export default function ArticleDetailPage({ params }: { params: { id: string } }) {
+interface PageParams {
+    params: {
+        id: string;
+    };
+}
+
+export default function ArticleDetailPage({ params }: PageParams) {
     const [article, setArticle] = useState<Article | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null); useEffect(() => {
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
         // Récupérer l'article depuis l'API
         const fetchArticle = async () => {
             try {
