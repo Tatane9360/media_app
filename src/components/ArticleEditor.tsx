@@ -38,19 +38,19 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
 
     setUploading(true);
     try {
-      // 3. Options de compression/conversion (ajustables)
+
       const options = {
         maxSizeMB: 0.5,
         maxWidthOrHeight: 1024,
         useWebWorker: true,
-        fileType: 'image/webp', // Conversion en WebP
+        fileType: 'image/webp', 
         initialQuality: 0.7,
       };
 
-      // 4. Compression et conversion en WebP AVANT l'envoi
+
       const compressedFile = await imageCompression(file, options);
 
-      // 5. On prépare le FormData avec le fichier compressé/converi
+
       const formData = new FormData();
       formData.append('file', compressedFile, 'image.webp');
 
@@ -161,8 +161,7 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleFileUpload} // <-- Ici, on utilise la fonction modifiée
-                className="hidden"
+                onChange={handleFileUpload} 
               />
               {image && (
                 <div className="mt-3">
@@ -177,42 +176,44 @@ export default function ArticleEditor({ article, onClose }: ArticleEditorProps) 
           </div>
 
           <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Content *
-      </label>
-      <div className="border border-gray-300 rounded-md shadow-sm bg-white">
-        <MDEditor
-          value={content}
-          onChange={(val) => setContent(val || '')}
-          height={400}
-          preview="edit"
-          hideToolbar={false}
-          visibleDragbar={false}
-          className="prose max-w-none p-4"
-          textareaProps={{
-            style: {
-              fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-              fontSize: 16,
-              lineHeight: 1.6,
-              minHeight: 360,
-              padding: 12,
-              outline: 'none',
-            },
-          }}
-        />
-      </div>
-    </div>
-
-          <div className="flex items-center">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Content *
+            </label>
+            <div className="border border-gray-300 rounded-md shadow-sm bg-white">
+              <MDEditor
+                value={content}
+                onChange={(val) => setContent(val || '')}
+                height={400}
+                preview="edit"
+                hideToolbar={false}
+                visibleDragbar={false}
+                className="prose max-w-none p-4"
+                textareaProps={{
+                  style: {
+                    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                    fontSize: 16,
+                    lineHeight: 1.6,
+                    minHeight: 360,
+                    padding: 12,
+                    outline: 'none',
+                  },
+                }}
+              />
+            </div>
+          </div>          <div className="flex items-center">
             <input
               type="checkbox"
               id="published"
               checked={published}
-              onChange={(e) => setPublished(e.target.checked)}
+              onChange={(e) => {
+                const newValue = e.target.checked;
+                console.log('Publication de l\'article changée:', newValue);
+                setPublished(newValue);
+              }}
               className="mr-2"
             />
             <label htmlFor="published" className="text-sm text-gray-700">
-              Publish article immediately
+              Publish article immediately ({published ? 'Publié' : 'Brouillon'})
             </label>
           </div>
 

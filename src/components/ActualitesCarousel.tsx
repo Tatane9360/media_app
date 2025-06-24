@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Button from './Button';
+import Link from 'next/link';
 
 interface ArticleCard {
   id: string;
@@ -42,9 +43,11 @@ const ActualitesCarousel = () => {
       {/* Header */}
       <div className="px-4 sm:px-6 flex justify-between items-center mb-6">
         <h2 className="text-light text-xl sm:text-2xl font-bold">ACTUALITÉS</h2>
+        <Link href="/blog">
         <Button variant="primary" size="sm">
           Consultez toutes les actus
-        </Button>
+          </Button>
+        </Link>
       </div>
       
       {/* Carousel with scroll */}

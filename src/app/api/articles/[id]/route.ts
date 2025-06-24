@@ -3,7 +3,28 @@ import { connectDB } from "@/lib/mongodb";
 import { Article } from "@/models/Article";
 import { verifyToken } from "@/lib/jwt";
 
-// Corrigez le typage des paramètres
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+
+    const params = await context.params;
+
+    const article = await Article.findById(params.id).populate("author", "email");
+
+    if (!article) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ article });
+  } catch (error) {
+    console.error("Error fetching article:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -11,7 +32,6 @@ export async function PUT(
   try {
     await connectDB();
 
-    // Await les params car ils sont maintenant une Promise dans Next.js 15
     const params = await context.params;
 
     const token = request.cookies.get("token")?.value;
@@ -50,7 +70,6 @@ export async function DELETE(
   try {
     await connectDB();
 
-    // Await les params
     const params = await context.params;
 
     const token = request.cookies.get("token")?.value;

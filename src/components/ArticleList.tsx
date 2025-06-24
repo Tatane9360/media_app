@@ -13,9 +13,9 @@ export default function ArticleList() {
   const [showEditor, setShowEditor] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
-
   useEffect(() => {
-    fetchArticles();
+    
+    fetchArticles(true); 
   }, [fetchArticles]);
 
   const handleEdit = (article: any) => {
@@ -42,7 +42,7 @@ export default function ArticleList() {
     setSelectedArticle(null);
   };
 
-  // Function to truncate markdown content
+
   const truncateMarkdown = (markdown: string, maxLength = 200) => {
     const plainText = markdown.replace(/[#*`_~\[\]()]/g, '').replace(/\n/g, ' ');
     return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
