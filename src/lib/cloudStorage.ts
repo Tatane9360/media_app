@@ -3,15 +3,25 @@ import { generateThumbnail } from "./videoProcessing";
 import { tmpdir } from "os";
 import { join } from "path";
 import { writeFile } from "fs/promises";
-import { v4 as uuidv4 } from "uuid";
 import stream from "stream";
 
 // Types pour Cloudinary
+type CloudinaryTransformation = Record<string, string | number | boolean>;
+
 interface CloudinaryUploadOptions {
   folder: string;
   public_id?: string;
   resource_type: "video" | "image" | "raw" | "auto";
-  transformation?: any[];
+  transformation?: CloudinaryTransformation[];
+}
+
+interface CloudinaryUploadResult {
+  public_id: string;
+  secure_url: string;
+  resource_type: string;
+  format: string;
+  bytes: number;
+  [key: string]: unknown;
 }
 
 // Configuration de Cloudinary
@@ -26,7 +36,7 @@ cloudinary.config({
 async function uploadBufferToCloudinary(
   buffer: Buffer,
   options: CloudinaryUploadOptions
-): Promise<any> {
+): Promise<CloudinaryUploadResult> {
   return new Promise((resolve, reject) => {
     // Créer un stream à partir du buffer
     const readableStream = new stream.PassThrough();
@@ -37,7 +47,9 @@ async function uploadBufferToCloudinary(
       options,
       (error, result) => {
         if (error) return reject(error);
-        resolve(result);
+        if (!result)
+          return reject(new Error("Aucun résultat retourné par Cloudinary"));
+        resolve(result as CloudinaryUploadResult);
       }
     );
 
@@ -52,7 +64,7 @@ async function uploadBufferToCloudinary(
 export async function uploadToCloudStorage(
   fileBuffer: Buffer,
   fileName: string,
-  mimeType: string
+  _mimeType: string
 ): Promise<{ url: string; thumbnailUrl: string }> {
   // Générer un ID unique pour le fichier
   const timestamp = Date.now();

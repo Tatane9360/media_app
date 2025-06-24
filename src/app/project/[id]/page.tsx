@@ -57,7 +57,7 @@ export default function ProjectEdit() {
           const assetsMap = new Map();
           
           // Créer un map pour un accès rapide
-          assets.forEach(asset => {
+          assets.forEach((asset: any) => {
             const assetId = asset._id?.toString() || asset.id?.toString();
             if (assetId) {
               assetsMap.set(assetId, asset);

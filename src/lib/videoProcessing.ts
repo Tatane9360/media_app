@@ -6,36 +6,45 @@ import { join, resolve } from "path";
 import { writeFile, unlink } from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
 import * as fs from "fs";
+import { Timeline } from "../interface/iProject";
+import { VideoAsset } from "../interface/iVideoAsset";
 
 // Essayer de configurer les chemins pour ffmpeg et ffprobe
 let isFFmpegAvailable = true;
 try {
-  // Essayer d'utiliser les binaires fournis par les variables d'environnement
-  const ffmpegPath = process.env.FFMPEG_PATH;
-  const ffprobePath = process.env.FFPROBE_PATH;
+  // Utiliser les chemins définis dans les variables d'environnement
+  const ffmpegPath = process.env.FFMPEG_PATH || "/opt/homebrew/bin/ffmpeg";
+  const ffprobePath = process.env.FFPROBE_PATH || "/opt/homebrew/bin/ffprobe";
 
-  // Essayer de trouver les binaires installés via npm/pnpm
+  // Essayer d'abord les chemins des variables d'environnement
+  if (ffmpegPath && fs.existsSync(ffmpegPath)) {
+    ffmpeg.setFfmpegPath(ffmpegPath);
+    console.log("FFmpeg path configuré:", ffmpegPath);
+  }
+
+  if (ffprobePath && fs.existsSync(ffprobePath)) {
+    ffmpeg.setFfprobePath(ffprobePath);
+    console.log("FFprobe path configuré:", ffprobePath);
+  }
+
+  // Si pas trouvé, essayer de trouver les binaires installés via npm/pnpm
   const nodeModulesBin = resolve(process.cwd(), "node_modules", ".bin");
 
-  if (ffmpegPath) {
-    ffmpeg.setFfmpegPath(ffmpegPath);
-  } else if (fs.existsSync(join(nodeModulesBin, "ffmpeg"))) {
-    ffmpeg.setFfmpegPath(join(nodeModulesBin, "ffmpeg"));
-  } else if (fs.existsSync(join(nodeModulesBin, "ffmpeg.exe"))) {
-    ffmpeg.setFfmpegPath(join(nodeModulesBin, "ffmpeg.exe"));
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+    if (fs.existsSync(join(nodeModulesBin, "ffmpeg"))) {
+      ffmpeg.setFfmpegPath(join(nodeModulesBin, "ffmpeg"));
+    } else if (fs.existsSync(join(nodeModulesBin, "ffmpeg.exe"))) {
+      ffmpeg.setFfmpegPath(join(nodeModulesBin, "ffmpeg.exe"));
+    }
   }
 
-  if (ffprobePath) {
-    ffmpeg.setFfprobePath(ffprobePath);
-  } else if (fs.existsSync(join(nodeModulesBin, "ffprobe"))) {
-    ffmpeg.setFfprobePath(join(nodeModulesBin, "ffprobe"));
-  } else if (fs.existsSync(join(nodeModulesBin, "ffprobe.exe"))) {
-    ffmpeg.setFfprobePath(join(nodeModulesBin, "ffprobe.exe"));
+  if (!ffprobePath || !fs.existsSync(ffprobePath)) {
+    if (fs.existsSync(join(nodeModulesBin, "ffprobe"))) {
+      ffmpeg.setFfprobePath(join(nodeModulesBin, "ffprobe"));
+    } else if (fs.existsSync(join(nodeModulesBin, "ffprobe.exe"))) {
+      ffmpeg.setFfprobePath(join(nodeModulesBin, "ffprobe.exe"));
+    }
   }
-
-  // Vérifier si les chemins sont définis
-  console.log("FFmpeg path:", ffmpeg.path);
-  console.log("FFprobe path:", ffmpeg.probe);
 } catch (error) {
   console.warn("Erreur lors de la configuration de FFmpeg/FFprobe:", error);
   isFFmpegAvailable = false;
@@ -98,109 +107,156 @@ export async function extractVideoMetadata(
       await unlink(tempFilePath).catch(() => {});
     }
   } catch (error) {
-    console.warn("Erreur lors de l'extraction des métadonnées:", error);
-    console.log("Utilisation des métadonnées par défaut");
-
-    // Retourner des métadonnées par défaut en cas d'erreur
-    return {
-      duration: 60, // 60 secondes
-      width: 1280,
-      height: 720,
-      codec: "h264",
-      framerate: 30,
-      bitrate: 2000000, // 2 Mbps
-      audioChannels: 2,
-      audioSampleRate: 44100,
-    };
+    console.error("Erreur lors de l'extraction des métadonnées:", error);
+    return {};
   }
 }
 
 /**
- * Génère une miniature à partir d'un fichier vidéo
+ * Convertit un stream en buffer
  */
-export async function generateThumbnail(
-  videoBuffer: Buffer,
-  timeOffset: number = 0
+export function streamToBuffer(stream: Readable): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
+
+/**
+ * Compresse une vidéo avec des paramètres spécifiés
+ */
+export async function compressVideo(
+  inputBuffer: Buffer,
+  options: {
+    quality: "low" | "medium" | "high";
+    maxSize?: number; // en MB
+    codec?: "h264" | "h265";
+  }
 ): Promise<Buffer> {
+  const tempInputPath = join(tmpdir(), `${uuidv4()}-input.mp4`);
+  const tempOutputPath = join(tmpdir(), `${uuidv4()}-output.mp4`);
+
   try {
-    // Créer un fichier temporaire pour la vidéo
-    const tempFilePath = join(tmpdir(), `${uuidv4()}.mp4`);
-    const thumbnailPath = join(tmpdir(), `${uuidv4()}.jpg`);
+    // Écrire le buffer d'entrée dans un fichier temporaire
+    await writeFile(tempInputPath, inputBuffer);
 
-    await writeFile(tempFilePath, videoBuffer);
-
-    try {
-      // Utiliser ffmpeg pour générer une miniature
-      return await new Promise((resolve, reject) => {
-        ffmpeg(tempFilePath)
-          .screenshots({
-            timestamps: [timeOffset],
-            filename: thumbnailPath,
-            folder: tmpdir(),
-            size: "320x180",
-          })
-          .on("end", async () => {
-            try {
-              const thumbnailBuffer = await import("fs").then((fs) =>
-                fs.promises.readFile(thumbnailPath)
-              );
-              resolve(thumbnailBuffer);
-            } catch (error) {
-              reject(error);
-            }
-          })
-          .on("error", (err) => {
-            reject(
-              new Error(
-                `Erreur lors de la génération de la miniature: ${err.message}`
-              )
-            );
-          });
-      });
-    } finally {
-      // Nettoyer les fichiers temporaires
-      await Promise.all([
-        unlink(tempFilePath).catch(() => {}),
-        unlink(thumbnailPath).catch(() => {}),
-      ]);
+    // Déterminer les paramètres de compression selon la qualité
+    let videoBitrate, audioBitrate, crf;
+    switch (options.quality) {
+      case "low":
+        videoBitrate = "500k";
+        audioBitrate = "64k";
+        crf = 28;
+        break;
+      case "medium":
+        videoBitrate = "1000k";
+        audioBitrate = "128k";
+        crf = 23;
+        break;
+      case "high":
+        videoBitrate = "2000k";
+        audioBitrate = "192k";
+        crf = 18;
+        break;
     }
-  } catch (error) {
-    console.warn("Erreur lors de la génération de la miniature:", error);
-    console.log("Utilisation d'une miniature par défaut");
 
-    // Retourner une miniature par défaut (une image en base64)
-    const placeholderBase64 =
-      "iVBORw0KGgoAAAANSUhEUgAAAUAAAAC0CAMAAADROu3pAAAAM1BMVEX///8AAACenp6vr6/V1dXm5uYMDAw9PT1dXV19fX2Ojo7ExMRtbW0VFRUvLy9NTU3e3t7NMeSYAAADe0lEQVR4nO2d7YKkIAiFxT/zPtP3f7FrO7O7QioFCXlmzm+rCQ9eQFfh9UIIIYQQQgghhBBCCCGEEEIIIYQQQgghhHyL39Q/oP/+X3WtG7D/J/XP7L+p/cFpoPVHlw/KO1e6beBbuPBhWLnwYblxYXcyBHcufM+FGw0x5cJOXdjQlgu7vHbhMwx5Xrp6b3CW9Hjwu1IbXiP1W7DeTQ/Ci1PNALw41Ry4/Ls9OEEbCn6V/PjFtxP+hBen2gF4carZcfnHFOdGlbj2L//Q4lQjAC9ONQIs/2RRPF0VLv9kUTxdFVj+Me57sFG/UJLE0xXR4tQ1QYtT16TF9Dd5+l60qxWKp7RZ+hGodq6hgcVV2qyH3MWFG1q4W9vY0p3uwY1UVWiTdjzAjVRVwOWfLIqnpxuQpEIYXDw9XbT8g3+iHRa0eHoaMUMTuoHI0IQK0eIpVJxqheEaZNASDl2cwiDFUzA+Gg4tnsJA8TQcWjyFQeJpOLR4CpMfT8PBxdNJ8w9wcWoM8eJpOLB4Oo58caod+fE0nOnj6SmS42k4k8fTkwwQT8NJLU5d088QT8NJLU5dM0A8hbG13U+bOAkXLk61Y4B4Cpe4aqfZLDwYF6fa0X88DcfT5Gk4nsbTcPqOp/H0HE/j6TiexkOXX51ZbQ3H03jGjqfxgMWpZnSxJXcGHW3JnUEfW3LnkFicasUA8TSeseNpPGPH03jGjqfxjB1P4xk7nsYzdjyNZ+x4Gs/Y8TSejuKpE9cZy9xbcufT8ZbcGQywJXcGHcXTFOBjKyafARZ+5jFAPI1ngHgazwDxNJ6O4qnTEPM0HW/JncHYW3JnMPaW3BkMvSV3BkNvyZ3B2FtyZzD2ltwZdLQlt2fEDM3YW3JnMPaW3Bn0FE+1Oe7wjb0ldwZgcaoVeNYPrfaXlHFJGRdw1g8tTqGj1PBqf0kZl5RxSamZDlDtr+K4pYyLU5zCocWpcIpTnJJFcYpTsvzLKU5JSyulilPS0tLi1E/RXcvFqZ+iu1L53g2wWvSXAqxZQC9m0VvAK1rAK0WCuopqAb1qAb1gAb1gAb1gAb1SAb36Any1An61AvoXXoCFnwIK6NUKqNiP+fsLFuC9AnoRBfQC/Gy8b0/eV/hZdoGfHQugdzMffT+Ds9z/0NtCCCGEEEIIIYQQQgghhBBCCCGEEEIIIYQQQgghhJD/gT+dUBo2JA4YkQAAAABJRU5ErkJggg==";
+    // Effectuer la compression
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(tempInputPath)
+        .videoCodec(options.codec === "h265" ? "libx265" : "libx264")
+        .audioCodec("aac")
+        .videoBitrate(videoBitrate)
+        .audioBitrate(audioBitrate)
+        .outputOptions([`-crf`, crf.toString()])
+        .on("end", () => resolve())
+        .on("error", reject)
+        .save(tempOutputPath);
+    });
 
-    return Buffer.from(placeholderBase64, "base64");
+    // Lire le fichier de sortie
+    const outputBuffer = await import("fs/promises").then((fs) =>
+      fs.readFile(tempOutputPath)
+    );
+
+    return outputBuffer;
+  } finally {
+    // Nettoyer les fichiers temporaires
+    await unlink(tempInputPath).catch(() => {});
+    await unlink(tempOutputPath).catch(() => {});
   }
 }
 
 /**
- * Convertit la timeline en commandes FFmpeg
+ * Génère des options FFmpeg pour une timeline complexe (fonction placeholder)
+ * TODO: Implémenter si des fonctionnalités avancées sont nécessaires
  */
-export function timelineToFfmpegCommands(
-  timeline: any,
-  videoAssets: any[]
-): { inputFiles: string[]; filterComplex: string; outputOptions: string[] } {
-  // À implémenter selon la structure de la timeline
-  // Cette fonction convertira la structure de timeline en commandes FFmpeg
 
-  // Exemple simplifié
-  return {
-    inputFiles: [],
-    filterComplex: "",
-    outputOptions: [],
-  };
+/**
+ * Fonction pour normaliser un fichier vidéo selon les paramètres du projet
+ */
+async function normalizeVideoFile(
+  inputPath: string,
+  outputPath: string,
+  projectSettings: {
+    width: number;
+    height: number;
+    framerate: number;
+    codec: string;
+    audioBitrate: number;
+  }
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    console.log(`🔧 Normalisation: ${inputPath} -> ${outputPath}`);
+    console.log(
+      `📐 Paramètres: ${projectSettings.width}x${projectSettings.height} @ ${projectSettings.framerate}fps`
+    );
+
+    ffmpeg(inputPath)
+      .videoCodec(projectSettings.codec === "h265" ? "libx265" : "libx264")
+      .audioCodec("aac")
+      .size(`${projectSettings.width}x${projectSettings.height}`)
+      .fps(projectSettings.framerate)
+      .audioBitrate(projectSettings.audioBitrate)
+      .audioFrequency(48000)
+      .outputOptions([
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-preset",
+        "medium",
+        "-crf",
+        "23",
+      ])
+      .on("start", (commandLine) => {
+        console.log(`🎬 Commande normalisation:`, commandLine);
+      })
+      .on("progress", (progress) => {
+        console.log(
+          `📊 Progression normalisation: ${Math.round(progress.percent || 0)}%`
+        );
+      })
+      .on("end", () => {
+        console.log(`✅ Normalisation terminée: ${outputPath}`);
+        resolve();
+      })
+      .on("error", (err) => {
+        console.error(`❌ Erreur normalisation: ${err.message}`);
+        reject(err);
+      })
+      .save(outputPath);
+  });
 }
 
 /**
  * Fonction pour le rendu vidéo basé sur une timeline
  */
 export async function renderVideoFromTimeline(
-  timeline: any,
-  videoAssets: any[],
-  outputOptions: {
+  timeline: Timeline,
+  videoAssets: VideoAsset[],
+  renderSettings: {
     format: string;
     quality: string;
     codec: string;
@@ -208,11 +264,236 @@ export async function renderVideoFromTimeline(
     bitrateAudio: number;
   }
 ): Promise<{ outputPath: string }> {
-  // À implémenter avec FFmpeg
-  // Cette fonction prendra une timeline et des assets et générera une vidéo montée
+  console.log("🎬 Début du rendu vidéo...");
+  console.log("Timeline:", JSON.stringify(timeline, null, 2));
+  console.log("Video Assets:", videoAssets);
+  console.log("Render Settings:", renderSettings);
 
-  // Exemple simplifié de retour
-  return {
-    outputPath: "/temp/output.mp4",
+  if (!isFFmpegAvailable) {
+    throw new Error("FFmpeg n'est pas disponible. Veuillez l'installer.");
+  }
+
+  // Créer un dossier temporaire unique pour ce rendu
+  const renderUuid = uuidv4();
+  const tempDir = join(tmpdir(), `render-${renderUuid}`);
+  const outputPath = join(tempDir, `output.${renderSettings.format || "mp4"}`);
+
+  // Définir les paramètres du projet depuis la timeline
+  const projectWidth = timeline.resolution?.width || 1920;
+  const projectHeight = timeline.resolution?.height || 1080;
+  const projectFramerate = 30; // Défaut, peut être paramétrable
+  const projectSettings = {
+    width: projectWidth,
+    height: projectHeight,
+    framerate: projectFramerate,
+    codec: renderSettings.codec,
+    audioBitrate: renderSettings.bitrateAudio,
   };
+
+  console.log("🎯 Paramètres du projet:", projectSettings);
+
+  try {
+    // Créer le dossier temporaire
+    await import("fs/promises").then((fs) =>
+      fs.mkdir(tempDir, { recursive: true })
+    );
+
+    // Vérifier qu'il y a des clips à traiter
+    if (!timeline.clips || timeline.clips.length === 0) {
+      throw new Error("Aucun clip trouvé dans la timeline");
+    }
+
+    // Télécharger et préparer tous les fichiers vidéo
+    const inputFiles: string[] = [];
+
+    for (let i = 0; i < timeline.clips.length; i++) {
+      const clip = timeline.clips[i];
+      console.log(`🔍 Traitement du clip ${i}:`, {
+        assetId: clip.assetId,
+        trackIndex: clip.trackIndex,
+        startTime: clip.startTime,
+        endTime: clip.endTime,
+      });
+
+      const asset = videoAssets.find(
+        (a) => a._id?.toString() === clip.assetId.toString()
+      );
+
+      if (!asset || !asset.storageUrl) {
+        console.warn(`❌ Asset non trouvé pour le clip ${i}:`, clip);
+        console.warn(
+          `📋 Assets disponibles:`,
+          videoAssets.map((a) => ({ id: a._id?.toString(), url: a.storageUrl }))
+        );
+        continue;
+      }
+
+      console.log(`📥 Téléchargement de l'asset ${i}:`, asset.storageUrl);
+
+      // Télécharger le fichier depuis Cloudinary
+      const response = await fetch(asset.storageUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Impossible de télécharger l'asset: ${asset.storageUrl}`
+        );
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const inputPath = join(tempDir, `input-${i}.mp4`);
+
+      await writeFile(inputPath, buffer);
+      inputFiles.push(inputPath);
+
+      console.log(`✅ Asset ${i} téléchargé:`, inputPath);
+    }
+
+    if (inputFiles.length === 0) {
+      throw new Error("Aucun fichier d'entrée valide trouvé");
+    }
+
+    // Étape 1: Normaliser tous les fichiers selon les paramètres du projet
+    console.log("🔄 Normalisation de tous les fichiers...");
+    const normalizedFiles: string[] = [];
+
+    for (let i = 0; i < inputFiles.length; i++) {
+      const inputFile = inputFiles[i];
+      const normalizedPath = join(tempDir, `normalized-${i}.mp4`);
+
+      await normalizeVideoFile(inputFile, normalizedPath, projectSettings);
+      normalizedFiles.push(normalizedPath);
+    }
+
+    console.log("🔧 Démarrage du traitement FFmpeg final...");
+
+    // Étape 2: Créer la vidéo de sortie
+    if (normalizedFiles.length === 1) {
+      // Un seul fichier : copie directe (déjà normalisé)
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(normalizedFiles[0])
+          .on("start", (commandLine) => {
+            console.log("Commande FFmpeg finale:", commandLine);
+          })
+          .on("progress", (progress) => {
+            console.log(
+              "Progression finale:",
+              Math.round(progress.percent || 0) + "%"
+            );
+          })
+          .on("end", () => {
+            console.log("✅ Rendu terminé avec succès!");
+            resolve();
+          })
+          .on("error", (err) => {
+            console.error("❌ Erreur FFmpeg finale:", err);
+            reject(err);
+          })
+          .videoCodec("copy") // Copie directe car déjà normalisé
+          .audioCodec("copy")
+          .format(renderSettings.format || "mp4")
+          .save(outputPath);
+      });
+    } else {
+      // Plusieurs fichiers : concaténation simple (tous normalisés)
+      console.log("🔗 Concaténation des fichiers normalisés...");
+
+      // Créer un fichier de liste pour la concaténation
+      const listPath = join(tempDir, "filelist.txt");
+      const fileListContent = normalizedFiles
+        .map((file) => `file '${file}'`)
+        .join("\n");
+      await writeFile(listPath, fileListContent);
+
+      // Utiliser la méthode de concaténation par liste de fichiers
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg()
+          .input(listPath)
+          .inputOptions(["-f", "concat", "-safe", "0"])
+          .on("start", (commandLine) => {
+            console.log("Commande FFmpeg finale:", commandLine);
+          })
+          .on("progress", (progress) => {
+            console.log(
+              "Progression finale:",
+              Math.round(progress.percent || 0) + "%"
+            );
+          })
+          .on("end", () => {
+            console.log("✅ Rendu terminé avec succès!");
+            resolve();
+          })
+          .on("error", (err) => {
+            console.error("❌ Erreur FFmpeg finale:", err);
+            reject(err);
+          })
+          .videoCodec("copy") // Copie directe car tous normalisés
+          .audioCodec("copy")
+          .format(renderSettings.format || "mp4")
+          .save(outputPath);
+      });
+    }
+
+    console.log("🎉 Rendu terminé! Fichier de sortie:", outputPath);
+    return { outputPath };
+  } catch (error) {
+    console.error("❌ Erreur lors du rendu:", error);
+
+    // Nettoyer les fichiers temporaires en cas d'erreur
+    try {
+      await import("fs/promises").then((fs) =>
+        fs.rm(tempDir, { recursive: true, force: true })
+      );
+    } catch (cleanupError) {
+      console.warn("Erreur lors du nettoyage:", cleanupError);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Génère une miniature (thumbnail) à partir d'un buffer vidéo
+ */
+export async function generateThumbnail(
+  videoBuffer: Buffer,
+  options: {
+    width?: number;
+    height?: number;
+    timeOffset?: number; // Temps en secondes pour capturer la frame
+  } = {}
+): Promise<Buffer> {
+  const tempInputPath = join(tmpdir(), `${uuidv4()}-input.mp4`);
+  const tempOutputPath = join(tmpdir(), `${uuidv4()}-thumbnail.jpg`);
+
+  try {
+    // Écrire le buffer vidéo dans un fichier temporaire
+    await writeFile(tempInputPath, videoBuffer);
+
+    // Générer la miniature avec une approche plus directe
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(tempInputPath)
+        .seekInput(options.timeOffset || 1) // Se positionner à la seconde désirée
+        .frames(1) // Capturer seulement 1 frame
+        .size(`${options.width || 320}x${options.height || 180}`)
+        .output(tempOutputPath)
+        .outputFormat("mjpeg") // Format JPEG
+        .on("end", () => {
+          console.log("✅ Miniature générée avec succès");
+          resolve();
+        })
+        .on("error", (err) => {
+          console.error("❌ Erreur génération miniature:", err);
+          reject(err);
+        })
+        .run();
+    });
+
+    // Lire le fichier de miniature généré
+    const thumbnailBuffer = await fs.promises.readFile(tempOutputPath);
+
+    return thumbnailBuffer;
+  } finally {
+    // Nettoyer les fichiers temporaires
+    await unlink(tempInputPath).catch(() => {});
+    await unlink(tempOutputPath).catch(() => {});
+  }
 }

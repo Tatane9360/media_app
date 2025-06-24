@@ -55,7 +55,7 @@ export async function GET(
 
         // Créer un map des assets vidéo pour un accès rapide
         if (project.videoAssets && Array.isArray(project.videoAssets)) {
-          project.videoAssets.forEach((asset) => {
+          project.videoAssets.forEach((asset: any) => {
             if (asset._id) {
               videoAssetsMap.set(asset._id.toString(), asset);
             }

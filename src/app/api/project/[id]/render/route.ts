@@ -46,10 +46,38 @@ export async function POST(
     project.renderProgress = 0;
     await project.save();
 
-    // Récupérer tous les assets vidéo du projet
+    // Récupérer tous les asset IDs utilisés dans la timeline
+    const assetIds = new Set<string>();
+
+    // Collecter les IDs depuis les clips vidéo
+    if (project.timeline.clips) {
+      project.timeline.clips.forEach((clip: any) => {
+        if (clip.assetId) {
+          assetIds.add(clip.assetId.toString());
+        }
+      });
+    }
+
+    // Collecter les IDs depuis les pistes audio
+    if (project.timeline.audioTracks) {
+      project.timeline.audioTracks.forEach((track: any) => {
+        if (track.assetId) {
+          assetIds.add(track.assetId.toString());
+        }
+      });
+    }
+
+    console.log("🔍 Asset IDs trouvés dans la timeline:", Array.from(assetIds));
+
+    // Récupérer tous les assets vidéo nécessaires
     const videoAssets = await VideoAsset.find({
-      _id: { $in: project.videoAssets },
+      _id: { $in: Array.from(assetIds) },
     });
+
+    console.log(
+      "📁 Assets récupérés:",
+      videoAssets.map((a) => ({ id: a._id, url: a.storageUrl }))
+    );
 
     try {
       // Lancer le rendu vidéo en arrière-plan
