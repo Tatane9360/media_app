@@ -143,29 +143,8 @@ export default function ProjectEdit() {
   const handleRenderVideo = async () => {
     if (!project || !projectId) return;
     
-    try {
-      setLoading(true);
-      
-      const response = await fetch(`/api/project/${projectId}/render`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          renderSettings: project.renderSettings
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors du démarrage du rendu');
-      }
-      
-      // Rediriger vers la page de statut du rendu
-      router.push(`/project/${projectId}/status`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du rendu');
-      setLoading(false);
-    }
+    // Rediriger vers la page de génération
+    router.push(`/project/${projectId}/generate`);
   };
   
   if (loading) {
