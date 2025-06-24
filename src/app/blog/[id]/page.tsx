@@ -20,22 +20,26 @@ interface Article {
     updatedAt: string;
 }
 
-interface PageParams {
+type ArticleDetailPageProps = {
     params: {
         id: string;
     };
 }
 
-export default function ArticleDetailPage({ params }: PageParams) {
+export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
+    // Utiliser React.use() pour déballer les paramètres
+    const resolvedParams = React.use(params);
+    const id = resolvedParams.id;
+    
     const [article, setArticle] = useState<Article | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Récupérer l'article depuis l'API
         const fetchArticle = async () => {
             try {
-                const response = await fetch(`/api/articles/${params.id}`);
+                // Utiliser l'ID résolu au lieu d'accéder directement à params.id
+                const response = await fetch(`/api/articles/${id}`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -51,9 +55,8 @@ export default function ArticleDetailPage({ params }: PageParams) {
         };
 
         fetchArticle();
-    }, [params.id]);
+    }, [id]); // Dépendance à l'ID résolu
 
-    // Format date as DD/MM/YY
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().substring(2)}`;
@@ -81,7 +84,9 @@ export default function ArticleDetailPage({ params }: PageParams) {
                 </div>
             </div>
         );
-    } return (
+    } 
+    
+    return (
         <main className="min-h-screen bg-[var(--secondary)] pt-4 sm:pt-6 pb-24">
             <div className="px-4 sm:px-6 md:px-8 max-w-4xl mx-auto">
                 <div className="mb-4 sm:mb-6">
@@ -113,7 +118,8 @@ export default function ArticleDetailPage({ params }: PageParams) {
                                 priority
                             />
                         </div>
-                    )}                    <div className="prose prose-invert max-w-none text-[var(--foreground)] text-sm sm:text-base" style={{ whiteSpace: 'pre-wrap' }}>
+                    )}
+                    <div className="prose prose-invert max-w-none text-[var(--foreground)] text-sm sm:text-base" style={{ whiteSpace: 'pre-wrap' }}>
                         {article.content}
                     </div>
 
