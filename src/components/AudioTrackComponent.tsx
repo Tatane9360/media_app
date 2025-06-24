@@ -42,18 +42,24 @@ interface AudioTrackComponentProps {
   onDragEnd: () => void;
   onTrimStart: (e: React.MouseEvent, track: AudioTrack, type: 'start' | 'end') => void;
   onRemove: (trackId: string) => void;
+  // Nouvelles props pour l'outil cut
+  cutToolActive?: boolean;
+  onCutClick?: (position: number, trackIndex: number) => void;
 }
 
 export const AudioTrackComponent: React.FC<AudioTrackComponentProps> = ({
   track,
   trackKey,
+  trackIndex,
   isSelected,
   pixelsPerSecond,
   onSelect,
   onDragStart,
   onDragEnd,
   onTrimStart,
-  onRemove
+  onRemove,
+  cutToolActive = false,
+  onCutClick
 }) => {
   const trackColor = track.linkedVideoClipId 
     ? 'rgba(124, 58, 237, 0.5)' // Violet pour les pistes liées aux vidéos
@@ -66,7 +72,9 @@ export const AudioTrackComponent: React.FC<AudioTrackComponentProps> = ({
   return (
     <div
       key={trackKey}
-      className={`absolute top-1 h-12 rounded overflow-hidden cursor-grab ${
+      className={`absolute top-1 h-12 rounded overflow-hidden ${
+        cutToolActive ? 'cursor-crosshair' : 'cursor-grab'
+      } ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       }`}
       style={{
@@ -76,15 +84,28 @@ export const AudioTrackComponent: React.FC<AudioTrackComponentProps> = ({
         borderLeft: `1px solid ${borderColor}`,
         borderRight: `1px solid ${borderColor}`
       }}
+      title={cutToolActive ? `Cliquer pour découper la piste audio à cette position` : `Piste audio: ${getAssetDisplayName(track.asset)}`}
       onClick={(e) => {
         e.stopPropagation();
+        
+        // Si l'outil Cut est actif, déclencher la découpe au lieu de sélectionner
+        if (cutToolActive && onCutClick) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickPosition = track.startTime + ((e.clientX - rect.left) / pixelsPerSecond);
+          
+          // Déclencher la découpe à cette position
+          onCutClick(clickPosition, trackIndex);
+          return;
+        }
+        
+        // Comportement normal : sélectionner la piste
         const trackId = track.id || track._id?.toString();
         if (trackId) {
           onSelect(trackId);
         }
       }}
-      draggable={!track.linkedVideoClipId} // Seules les pistes indépendantes peuvent être déplacées
-      onDragStart={(e) => !track.linkedVideoClipId && onDragStart(e, track)}
+      draggable={!track.linkedVideoClipId && !cutToolActive} // Désactiver le drag quand l'outil cut est actif
+      onDragStart={(e) => !track.linkedVideoClipId && !cutToolActive && onDragStart(e, track)}
       onDragEnd={onDragEnd}
     >
       {/* Poignée de trimming gauche (seulement pour les pistes indépendantes) */}

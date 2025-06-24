@@ -5,6 +5,8 @@ import { VideoThumbnail } from './VideoThumbnail';
 import VideoPreview from './VideoPreview';
 import { AudioTrackComponent } from './AudioTrackComponent';
 import { OptimizedImage } from './OptimizedImage';
+import { CutToolHandler, CutToolCallbacks } from '@/utils/timeline/cutToolHandler';
+import { CutToolButton, CutToolUI } from '@/utils/timeline/cutToolUI';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -42,6 +44,27 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     width: 0,
     visible: false
   });
+
+  // États pour l'outil de découpe - intégration du CutToolHandler
+  const [cutToolActive, setCutToolActive] = useState(false);
+  
+  const cutToolCallbacks: CutToolCallbacks = {
+    onTimelineUpdate: onChange,
+    onClipSelect: setSelectedClipId,
+    onAudioTrackSelect: setSelectedAudioTrackId,
+    onError: (message: string) => {
+      console.error('Erreur outil de découpe:', message);
+      // TODO: Afficher une notification d'erreur à l'utilisateur
+    }
+  };
+  
+  const [cutToolHandler] = useState(() => new CutToolHandler(timeline, cutToolCallbacks));
+
+  // Fonction pour toggle le cut tool avec mise à jour de l'état local
+  const toggleCutTool = useCallback(() => {
+    cutToolHandler.toggle();
+    setCutToolActive(cutToolHandler.isActive());
+  }, [cutToolHandler]);
   
   // Calculer la durée visible en pixels
   const pixelsPerSecond = scale / 10; // 10px par seconde à 100% de zoom
@@ -329,8 +352,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     
     console.log("=== Fin de l'association des assets aux pistes audio ===");
   }, [timeline, videoAssets, onChange, generateUniqueId]);
-  
-  // Exécuter l'association des assets lors du chargement initial et des mises à jour
+   // Exécuter l'association des assets lors du chargement initial et des mises à jour
   useEffect(() => {
     // Assurer que tous les clips ont un id valide
     const ensureClipsHaveIds = () => {
@@ -360,7 +382,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       
       return false;
     };
-    
+
     // D'abord s'assurer que tous les clips ont un ID
     const idsUpdated = ensureClipsHaveIds();
     
@@ -371,6 +393,30 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       ensureAudioTracksHaveAssets();
     }
   }, [ensureClipsHaveAssets, ensureAudioTracksHaveAssets, timeline, onChange]);
+
+  // Effet pour mettre à jour la timeline dans le CutToolHandler
+  useEffect(() => {
+    cutToolHandler.updateTimeline(timeline);
+  }, [timeline, cutToolHandler]);
+
+  // Effet pour les gestionnaires d'événements du CutTool
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const wasActive = cutToolHandler.isActive();
+      cutToolHandler.handleKeyDown(event);
+      const isNowActive = cutToolHandler.isActive();
+      
+      // Mettre à jour l'état local si l'état a changé
+      if (wasActive !== isNowActive) {
+        setCutToolActive(isNowActive);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [cutToolHandler]);
   
   // Gestion du défilement de la timeline
   const handleTimelineScroll = () => {
@@ -1245,6 +1291,35 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
     }
   }, [timeline.clips]);
   
+  // Gestionnaires pour l'outil de découpe
+  const handleTimelineMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!cutToolHandler.isActive()) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = (e.clientX - rect.left) / pixelsPerSecond;
+    
+    // Déterminer la piste si possible
+    const target = e.target as HTMLElement;
+    const trackElement = target.closest('[data-track-index]');
+    const trackIndex = trackElement ? parseInt(trackElement.getAttribute('data-track-index') || '0') : undefined;
+    
+    cutToolHandler.handleMouseMove(position, trackIndex);
+  }, [cutToolHandler, pixelsPerSecond]);
+
+  const handleTimelineClick = useCallback((e: React.MouseEvent) => {
+    if (!cutToolHandler.isActive()) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const position = (e.clientX - rect.left) / pixelsPerSecond;
+    
+    // Déterminer la piste
+    const target = e.target as HTMLElement;
+    const trackElement = target.closest('[data-track-index]');
+    const trackIndex = trackElement ? parseInt(trackElement.getAttribute('data-track-index') || '0') : undefined;
+    
+    cutToolHandler.handleClick(position, trackIndex);
+  }, [cutToolHandler, pixelsPerSecond]);
+
   // Commencer le trimming d'un clip
   const handleTrimStart = (e: React.MouseEvent, clip: Clip, type: 'start' | 'end') => {
     e.stopPropagation();
@@ -1568,27 +1643,38 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
       </div>
       
-      {/* Contrôles de zoom */}
-      <div className="flex items-center p-2 bg-gray-800 text-white">
-        <button 
-          onClick={() => setScale(Math.max(50, scale - 10))}
-          className="px-2 py-1 bg-gray-700 rounded"
-        >
-          -
-        </button>
-        <span className="mx-2">{scale}%</span>
-        <button 
-          onClick={() => setScale(Math.min(200, scale + 10))}
-          className="px-2 py-1 bg-gray-700 rounded"
-        >
-          +
-        </button>
+      {/* Contrôles de zoom et outils */}
+      <div className="flex items-center justify-between p-2 bg-gray-800 text-white">
+        {/* Contrôles de zoom */}
+        <div className="flex items-center">
+          <button 
+            onClick={() => setScale(Math.max(50, scale - 10))}
+            className="px-2 py-1 bg-gray-700 rounded"
+          >
+            -
+          </button>
+          <span className="mx-2">{scale}%</span>
+          <button 
+            onClick={() => setScale(Math.min(200, scale + 10))}
+            className="px-2 py-1 bg-gray-700 rounded"
+          >
+            +
+          </button>
+        </div>
+        
+        {/* Outils d'édition */}
+        <div className="flex items-center space-x-2">
+          <CutToolButton
+            isActive={cutToolActive}
+            onClick={toggleCutTool}
+          />
+        </div>
       </div>
       
       {/* Conteneur de timeline */}
       <div 
         ref={timelineRef}
-        className="flex-1 overflow-x-auto bg-gray-900"
+        className="flex-1 overflow-x-auto bg-gray-900 relative"
         onScroll={handleTimelineScroll}
       >
         {/* Règle temporelle */}
@@ -1624,12 +1710,17 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
         
         {/* Pistes vidéo */}
-        <div className="flex flex-col">
+        <div 
+          className="flex flex-col"
+          onMouseMove={handleTimelineMouseMove}
+          onClick={handleTimelineClick}
+        >
           {Array.from({ length: 3 }).map((_, trackIndex) => (
             <div 
               key={`track-${trackIndex}`}
               className="h-20 border-b border-gray-700 relative"
               style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
+              data-track-index={trackIndex}
               onDragOver={(e) => handleDragOver(e, trackIndex)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, trackIndex)}
@@ -1642,16 +1733,18 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               {timeline.clips
                 .filter(clip => clip.trackIndex === trackIndex)
                 .map((clip, index) => {
-                  // Créer une clé unique en combinant plusieurs éléments
+                  // Créer une clé unique en combinant plusieurs éléments pour éviter les doublons
                   const baseId = clip.id || clip._id?.toString();
                   const assetId = clip.assetId?.toString();
-                  const clipKey = baseId || `clip-${trackIndex}-${index}-${assetId || 'unknown'}-${clip.startTime}`;
+                  const uniqueKey = `clip-${trackIndex}-${index}-${baseId || 'no-id'}-${assetId || 'no-asset'}-${clip.startTime}-${clip.endTime}`;
                   const isSelected = (clip.id === selectedClipId) || (clip._id?.toString() === selectedClipId);
                   
                   return (
                     <div
-                      key={clipKey}
-                      className={`absolute top-1 bottom-1 rounded overflow-hidden cursor-grab ${
+                      key={uniqueKey}
+                      className={`absolute top-1 bottom-1 rounded overflow-hidden ${
+                        cutToolActive ? 'cursor-crosshair' : 'cursor-grab'
+                      } ${
                         isSelected ? 'ring-2 ring-blue-500' : ''
                       }`}
                       style={{
@@ -1659,10 +1752,22 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                         width: `${(clip.endTime - clip.startTime) * pixelsPerSecond}px`,
                         backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.5)' : 'rgba(75, 85, 99, 0.5)'
                       }}
+                      title={cutToolActive ? `Cliquer pour découper le clip à cette position` : `Clip: ${getAssetDisplayName(clip.asset)}`}
                       onClick={(e) => {
                         // Empêcher la propagation pour éviter les sélections multiples
                         e.stopPropagation();
-                        // Normaliser l'ID du clip (utiliser _id comme fallback)
+                        
+                        // Si l'outil Cut est actif, déclencher la découpe au lieu de sélectionner
+                        if (cutToolActive) {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const clickPosition = clip.startTime + ((e.clientX - rect.left) / pixelsPerSecond);
+                          
+                          // Utiliser directement le cutToolHandler pour découper à cette position
+                          cutToolHandler.handleClick(clickPosition, trackIndex);
+                          return;
+                        }
+                        
+                        // Comportement normal : sélectionner le clip
                         const clipId = clip.id || clip._id?.toString();
                         if (clipId) {
                           console.log(`Sélection du clip ${clipId}`);
@@ -1740,9 +1845,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           <div 
             className="relative"
             style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
+            onMouseMove={handleTimelineMouseMove}
+            onClick={handleTimelineClick}
           >
             {/* Piste 0: Audio des clips vidéo (liés) */}
-            <div className="h-16 bg-gray-800 border-b border-gray-600 relative">
+            <div 
+              className="h-16 bg-gray-800 border-b border-gray-600 relative"
+              data-track-index="0"
+            >
               <div className="absolute left-2 top-2 text-gray-400 text-xs">
                 Audio vidéo (liées)
               </div>
@@ -1752,14 +1862,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 .map((track, index) => {
                   const baseId = track.id || track._id?.toString();
                   const assetId = track.assetId?.toString();
-                  const trackKey = baseId || `audio-linked-${index}-${assetId || 'unknown'}-${track.startTime}`;
-                  const isSelected = selectedAudioTrackId === trackKey;
+                  const uniqueKey = `audio-linked-${index}-${baseId || 'no-id'}-${assetId || 'no-asset'}-${track.startTime}-${track.endTime}-${track.linkedVideoClipId || 'no-link'}`;
+                  const isSelected = selectedAudioTrackId === uniqueKey;
                   
                   return (
                     <AudioTrackComponent
-                      key={trackKey}
+                      key={uniqueKey}
                       track={track}
-                      trackKey={trackKey}
+                      trackKey={uniqueKey}
                       trackIndex={0}
                       isSelected={isSelected}
                       pixelsPerSecond={pixelsPerSecond}
@@ -1768,6 +1878,8 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                       onDragEnd={() => {}}
                       onTrimStart={() => {}} // Pas de trim pour les pistes liées
                       onRemove={() => {}} // Pas de suppression pour les pistes liées
+                      cutToolActive={cutToolActive}
+                      onCutClick={(position, trackIndex) => cutToolHandler.handleClick(position, trackIndex)}
                     />
                   );
                 })}
@@ -1778,6 +1890,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               <div 
                 key={`audio-track-${trackIndex}`}
                 className="h-16 bg-gray-900 border-b border-gray-600 relative"
+                data-track-index={trackIndex}
                 onDragOver={(e) => handleDragOver(e, trackIndex)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, trackIndex)}
@@ -1791,14 +1904,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                   .map((track, index) => {
                     const baseId = track.id || track._id?.toString();
                     const assetId = track.assetId?.toString();
-                    const trackKey = baseId || `audio-track-${trackIndex}-${index}-${assetId || 'unknown'}-${track.startTime}`;
-                    const isSelected = selectedAudioTrackId === trackKey;
+                    const uniqueKey = `audio-indep-${trackIndex}-${index}-${baseId || 'no-id'}-${assetId || 'no-asset'}-${track.startTime}-${track.endTime}`;
+                    const isSelected = selectedAudioTrackId === uniqueKey;
                     
                     return (
                       <AudioTrackComponent
-                        key={trackKey}
+                        key={uniqueKey}
                         track={track}
-                        trackKey={trackKey}
+                        trackKey={uniqueKey}
                         trackIndex={trackIndex}
                         isSelected={isSelected}
                         pixelsPerSecond={pixelsPerSecond}
@@ -1810,6 +1923,8 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                           console.log('Trim audio track:', track, type);
                         }}
                         onRemove={removeAudioTrack}
+                        cutToolActive={cutToolActive}
+                        onCutClick={(position, trackIndex) => cutToolHandler.handleClick(position, trackIndex)}
                       />
                     );
                   })}
@@ -1825,9 +1940,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                   />
                 )}
               </div>
-            ))}
-          </div>
-        </div>
+            ))}        </div>
+        
+        {/* Overlay pour l'outil de découpe */}
+        <CutToolUI
+          cutToolState={cutToolHandler.getState()}
+          className="absolute top-0 left-0 pointer-events-none"
+        />
+      </div>
       
       {/* Panel des assets */}
       <div className="p-4 bg-gray-800 border-t border-gray-700">
