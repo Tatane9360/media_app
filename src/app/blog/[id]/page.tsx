@@ -20,17 +20,13 @@ interface Article {
     updatedAt: string;
 }
 
-type ArticleDetailPageProps = {
+interface ArticleDetailPageProps {
     params: {
         id: string;
     };
 }
 
 export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
-    // Utiliser React.use() pour déballer les paramètres
-    const resolvedParams = React.use(params);
-    const id = resolvedParams.id;
-    
     const [article, setArticle] = useState<Article | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -38,24 +34,23 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
     useEffect(() => {
         const fetchArticle = async () => {
             try {
-                // Utiliser l'ID résolu au lieu d'accéder directement à params.id
-                const response = await fetch(`/api/articles/${id}`);
+                const response = await fetch(`/api/articles/${params.id}`);
                 const data = await response.json();
 
                 if (response.ok) {
                     setArticle(data.article);
                 } else {
-                    setError(data.error || 'Failed to fetch article');
+                    setError(data.error || "Échec du chargement de l'article");
                 }
             } catch {
-                setError('Network error');
+                setError('Erreur réseau');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchArticle();
-    }, [id]); // Dépendance à l'ID résolu
+    }, [params.id]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -84,8 +79,8 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
                 </div>
             </div>
         );
-    } 
-    
+    }
+
     return (
         <main className="min-h-screen bg-[var(--secondary)] pt-4 sm:pt-6 pb-24">
             <div className="px-4 sm:px-6 md:px-8 max-w-4xl mx-auto">
@@ -112,7 +107,7 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
                         <div className="relative h-[200px] sm:h-[300px] mb-4 sm:mb-6 rounded-lg overflow-hidden shadow-lg">
                             <Image
                                 src={article.image}
-                                alt={article.title}
+                                alt={`Image pour ${article.title}`}
                                 fill
                                 className="object-cover"
                                 priority
