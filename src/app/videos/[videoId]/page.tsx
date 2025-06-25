@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BackButton } from '@/components';
+
+import { BackButton } from '@components';
 
 interface Video {
   id: string;

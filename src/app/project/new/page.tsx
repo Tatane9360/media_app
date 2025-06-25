@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { VideoUpload } from '@/components';
+
+import { VideoUpload } from '@components';
 
 export default function NewProject() {
   const router = useRouter();

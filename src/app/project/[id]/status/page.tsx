@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Project } from '@/interface';
+
+import { Project } from '@interface';
 
 export default function RenderStatus() {
   const router = useRouter();

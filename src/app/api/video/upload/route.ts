@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { connectDB } from "@/lib/mongoose";
-import { VideoAsset } from "@/models/VideoAsset";
-import { extractVideoMetadata } from "@/lib/videoProcessing";
-import { uploadToCloudStorage } from "@/lib/cloudStorage";
+
+import { authOptions, connectDB, extractVideoMetadata, uploadToCloudStorage } from "@lib";
+import { VideoAsset } from "@models";
 
 export const config = {
   api: {
@@ -86,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     // Si un projectId est fourni, ajouter l'asset à ce projet
     if (projectId) {
-      const { Project } = await import("@/models/Project");
+      const { Project } = await import("@models");
       const project = await Project.findById(projectId);
 
       if (project) {

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useArticleStore } from '@/store/articleStore';
+
+import { useArticleStore } from '@store';
+
 import ArticleEditor from './ArticleEditor';
 import ArticleDetail from './ArticleDetails';
 

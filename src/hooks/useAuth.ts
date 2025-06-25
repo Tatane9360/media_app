@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Admin } from "@/interface/iAdmin";
+
+import { Admin } from "@interface";
 
 interface AuthState {
   isAuthenticated: boolean;

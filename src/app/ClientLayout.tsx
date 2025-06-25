@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppLoader } from '@/components';
-import { useAppLoader } from '@/hooks';
+import { AppLoader } from '@components';
+import { useAppLoader } from '@hooks';
 
 interface ClientLayoutProps {
   children: React.ReactNode;

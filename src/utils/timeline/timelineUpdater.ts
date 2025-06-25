@@ -1,4 +1,5 @@
-import { Timeline, Clip, AudioTrack } from "@/interface/iProject";
+import { Timeline, Clip, AudioTrack } from "@interface";
+
 import { CutResult, AudioCutResult, cutLinkedAudioTracks } from "./cutTool";
 
 /**

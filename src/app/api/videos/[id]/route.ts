@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongoose";
-import { Project } from "@/models/Project";
+
+import { connectDB } from "@lib";
+import { Project } from "@models";
 
 /**
  * GET /api/videos/[id] - Récupère une vidéo spécifique

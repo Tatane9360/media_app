@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib";
-import { connectDB } from "@/lib/mongoose";
-import { Project } from "@/models/Project";
-import { Clip } from "@/interface";
+
+import { authOptions, connectDB } from "@lib";
+import { Project } from "@models";
+import { Clip } from "@interface";
 
 // Récupérer un projet par son ID
 export async function GET(

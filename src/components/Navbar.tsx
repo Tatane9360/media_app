@@ -3,7 +3,8 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Icon from './Icon';
 import Link from 'next/link';
-import { useAuth } from '@/hooks';
+
+import { useAuth } from '@hooks';
 
 const Navbar = () => {
   const pathname = usePathname();

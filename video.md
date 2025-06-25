@@ -39,9 +39,8 @@ examples :
 // pages/api/upload.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable from 'formidable';
-import { uploadToCloudinary } from '@/lib/cloudinary';
-import { VideoAssetModel } from '@/models/VideoAsset';
-import { connectDB } from '@/lib/mongoose';
+import { uploadToCloudinary, connectDB } from '@lib';
+import { VideoAssetModel } from '@models';
 
 export const config = {
   api: { bodyParser: false }
@@ -95,8 +94,9 @@ export function renderTimeline(timeline: any, outputPath: string): Promise<void>
 ```tsx
 // pages/api/project/create.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { connectDB } from '@/lib/mongoose';
-import { ProjectModel } from '@/models/Project';
+
+import { connectDB } from '@lib';
+import { ProjectModel } from '@models';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectDB();

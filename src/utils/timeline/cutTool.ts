@@ -1,4 +1,4 @@
-import { Clip, AudioTrack } from "@/interface/iProject";
+import { Clip, AudioTrack } from "@interface";
 
 /**
  * Interface pour le résultat d'une découpe de clip

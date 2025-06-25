@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ArticleList from "@/components/ArticleList";
+
+import { ArticleList } from "@components";
 
 interface Admin {
   id: string;

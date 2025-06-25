@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { Admin } from "@/models/Admin";
-import { verifyToken } from "@/lib/jwt";
+
+import { verifyToken, connectDB } from "@lib";
+import { Admin } from "@models";
 
 export async function GET(request: NextRequest) {
   try {

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { TimelineEditor, VideoUpload } from '@/components';
-import { Project, Timeline, VideoAsset, Clip } from '@/interface';
+
+import { TimelineEditor, VideoUpload } from '@components';
+import { Project, Timeline, VideoAsset, Clip } from '@interface';
 
 export default function ProjectEdit() {
   const router = useRouter();

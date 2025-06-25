@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Project } from '@/interface';
+
+import { Project } from '@interface';
 
 export default function GenerateVideo() {
   const router = useRouter();

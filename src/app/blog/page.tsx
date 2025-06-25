@@ -2,11 +2,11 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
-import { useArticleStore } from '@/store/articleStore';
 import Image from 'next/image';
 import Link from 'next/link';
-import Icon from '@/components/Icon';
-import { BackButton, Footer, Header } from '@/components';
+
+import { useArticleStore } from '@store';
+import { Icon, BackButton } from '@components';
 
 export default function BlogPage() {
   const { articles: apiArticles, loading, fetchArticles, error } = useArticleStore();

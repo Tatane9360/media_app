@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib";
-import { connectDB } from "@/lib/mongoose";
-import { VideoAsset } from "@/models/VideoAsset";
+
+import { authOptions, connectDB } from "@lib";
+import { VideoAsset } from "@models";
 
 // Récupérer tous les assets vidéo
 export async function GET() {

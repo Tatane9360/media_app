@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Icon from '@/components/Icon';
-import Button from '@/components/Button';
 import { useParams } from 'next/navigation';
-import { BackButton, Footer, Header } from '@/components';
+
+import { BackButton, Button } from '@components';
 
 interface Article {
     _id: string;

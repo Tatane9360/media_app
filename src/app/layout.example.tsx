@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+
 import "./globals.css";
 import "@uiw/react-md-editor/markdown-editor.css";
-import Navbar from "@/components/Navbar";
-import { Footer, Header } from "@/components";
+
+import { Navbar, Footer, Header } from "@components";
+
 import ClientLayout from "./ClientLayout";
 
 const poppins = Poppins({

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib";
-import { connectDB } from "@/lib/mongoose";
-import { Project } from "@/models/Project";
-import { VideoAsset } from "@/models/VideoAsset";
+
+import { authOptions, connectDB } from "@lib";
+import { Project, VideoAsset } from "@models";
 
 // Récupérer tous les projets de l'utilisateur
 export async function GET() {

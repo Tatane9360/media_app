@@ -1,5 +1,4 @@
-// Fonctions utilitaires pour la gestion des pistes audio dans TimelineEditor
-import { AudioTrack, Timeline, Clip } from '@/interface/iProject';
+import { AudioTrack, Timeline, Clip } from '@interface';
 
 export interface AudioTrackState {
   draggedAudioTrack: AudioTrack | null;

@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Timeline, Clip, AudioTrack } from '@/interface/iProject';
-import { VideoAsset } from '@/interface/iVideoAsset';
+
+import { Timeline, Clip, AudioTrack, VideoAsset } from '@interface';
+
 import { VideoThumbnail } from './VideoThumbnail';
 import VideoPreview from './VideoPreview';
 import { AudioTrackComponent } from './AudioTrackComponent';
 import { OptimizedImage } from './OptimizedImage';
-import { CutToolHandler, CutToolCallbacks } from '@/utils/timeline/cutToolHandler';
-import { CutToolButton, CutToolUI } from '@/utils/timeline/cutToolUI';
+
+import { CutToolHandler, CutToolCallbacks, CutToolButton, CutToolUI } from '@utils';
 
 interface TimelineEditorProps {
   timeline: Timeline;

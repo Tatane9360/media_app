@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { connectDB } from "@/lib/mongodb";
-import { Admin } from "@/models/Admin";
-import { signToken } from "@/lib/jwt";
+
+import { signToken, connectDB } from "@lib";
+import { Admin } from "@models";
 
 export async function POST(request: NextRequest) {
   try {

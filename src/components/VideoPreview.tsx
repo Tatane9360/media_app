@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { Clip, AudioTrack } from '@/interface/iProject';
+
+import { Clip, AudioTrack } from '@interface';
 
 // Définir les états de chargement pour un suivi plus précis
 enum LoadingState {

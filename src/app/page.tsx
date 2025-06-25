@@ -4,7 +4,7 @@ import {
   HeroSection, 
   ActualitesCarousel, 
   VideosSection, 
-} from '@/components';
+} from '@components';
 
 export default function Home() {
   return (

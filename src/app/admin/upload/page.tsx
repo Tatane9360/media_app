@@ -2,7 +2,8 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { CloudinaryImage, VideoThumbnail } from '@/components';
+
+import { CloudinaryImage, VideoThumbnail } from '@components';
 
 export default function AdminUpload() {
   const router = useRouter();

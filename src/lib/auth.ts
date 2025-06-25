@@ -1,7 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+
+import { Admin } from "@models";
+
 import { connectDB } from "./mongoose";
-import { Admin } from "@/models/Admin";
 import { jwtSign, jwtVerify } from "./jwt";
 
 export const authOptions: NextAuthOptions = {

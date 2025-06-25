@@ -1,6 +1,5 @@
 import React from 'react';
-import { AudioTrack } from '@/interface/iProject';
-import { VideoAsset } from '@/interface/iVideoAsset';
+import { AudioTrack, VideoAsset } from '@interface';
 
 // Fonction utilitaire pour obtenir le nom d'affichage d'un asset (même logique que TimelineEditor)
 const getAssetDisplayName = (asset?: VideoAsset): string => {

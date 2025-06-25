@@ -106,7 +106,7 @@ ffmpeg -i input.mp4 -c:v libx264 -crf 23 -b:v 2M -c:a aac -b:a 128k public/video
 ### Reset du loader pour testing :
 
 ```tsx
-import { useAppLoader } from '@/hooks';
+import { useAppLoader } from '@hooks';
 
 const { resetLoader } = useAppLoader();
 

@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { useArticleStore } from '@/store/articleStore';
+
+import { useArticleStore } from '@store';
 // 1. On importe la librairie de compression/conversion
 import imageCompression from 'browser-image-compression';
 
