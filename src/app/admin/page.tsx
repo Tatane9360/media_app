@@ -102,7 +102,7 @@ export default function AdminDashboard() {
             <div className="w-32 h-32 border-2 border-dashed border-foreground rounded-lg flex items-center justify-center">
               <Icon name="arrowUp" size={48} color="#F6F6F6" />
             </div>
-            <Link href="/admin/videos" className="flex-1">
+            <Link href="/projects" className="flex-1">
               <Button variant="primary" size="lg" className="w-full">
                 VIDÉOS
               </Button>

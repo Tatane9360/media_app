@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 
-import { BackButton } from '@components';
+import { BackButton, VideoCard } from '@components';
 
 interface Video {
   id: string;
@@ -98,29 +96,7 @@ export default function Videos() {
         ) : (
           <div className="flex flex-col gap-8">
             {videos.map((video) => (
-              <div key={video.id} className="group">
-                <Link href={`/videos/${video.id}`}>
-                  <div className="flex flex-col gap-3">
-                    {/* Thumbnail */}
-                    <div className="relative aspect-video rounded-4xl overflow-hidden">
-                      <Image
-                        src={video.thumbnailUrl}
-                        alt={video.title}
-                        fill
-                        className="object-cover"
-                        sizes="100vw"
-                      />
-
-                      <BackButton variant='icon-only' href={`/videos/${video.id}`} className='rotate-180 absolute bottom-3 right-3' />
-                    </div>
-                    
-                    {/* Title below thumbnail */}
-                    <h3 className="text-2xl font-bold  uppercase tracking-wide">
-                      {video.title}
-                    </h3>
-                  </div>
-                </Link>
-              </div>
+              <VideoCard key={video.id} video={video} />
             ))}
           </div>
         )}

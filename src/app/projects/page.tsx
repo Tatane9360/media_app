@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button, VideoCard } from '@/components';
 
 interface Project {
   _id: string;
@@ -12,11 +13,21 @@ interface Project {
   updatedAt: string;
 }
 
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 type ProjectStatus = 'published' | 'draft';
 
 const statusLabels: Record<ProjectStatus, string> = {
   published: 'Publiés',
-  draft: 'Brouillons'
+  draft: 'Projects'
 };
 
 const statusColors: Record<string, string> = {
@@ -30,7 +41,9 @@ const statusColors: Record<string, string> = {
 export default function ProjectList() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [publishedVideos, setPublishedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [videosLoading, setVideosLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectStatus>('published');
 
@@ -59,13 +72,36 @@ export default function ProjectList() {
     fetchProjects();
   }, []);
 
+  // Charger les vidéos publiées quand l'onglet "published" est actif
+  useEffect(() => {
+    const fetchPublishedVideos = async () => {
+      if (activeTab !== 'published') return;
+      
+      try {
+        setVideosLoading(true);
+        const response = await fetch('/api/videos?limit=50'); // Récupérer plus de vidéos
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPublishedVideos(data.data.videos || []);
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des vidéos:', err);
+      } finally {
+        setVideosLoading(false);
+      }
+    };
+
+    fetchPublishedVideos();
+  }, [activeTab]);
+
   // Filtrer les projets selon l'onglet actif
   const filteredProjects = activeTab === 'published' 
     ? projects.filter(project => project.status === 'published')
     : projects.filter(project => project.status !== 'published');
 
   // Compter les projets par catégorie
-  const publishedCount = projects.filter(project => project.status === 'published').length;
+  const publishedCount = publishedVideos.length; // Compter les vidéos publiées, pas les projets
   const draftCount = projects.filter(project => project.status !== 'published').length;
 
   if (loading) {
@@ -92,14 +128,9 @@ export default function ProjectList() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Projets</h1>
+        <h1 className="text-3xl font-bold">Videos</h1>
         
-        <button
-          onClick={() => router.push('/project/new')}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          Nouveau projet
-        </button>
+        <Button onClick={() => router.push('/project/new')}>Nouveau projet</Button>
       </div>
       
       {/* Onglets de filtrage */}
@@ -114,12 +145,12 @@ export default function ProjectList() {
                   onClick={() => setActiveTab(status)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                     activeTab === status
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-main text-main'
+                      : 'border-transparent text-foreground hover:text-foreground/80 hover:border-main/50'
                   }`}
                 >
                   {statusLabels[status]}
-                  <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                  <span className="ml-2 bg-foreground text-background py-0.5 px-2 rounded-full text-xs">
                     {count}
                   </span>
                 </button>
@@ -129,58 +160,80 @@ export default function ProjectList() {
         </div>
       </div>
       
-      {filteredProjects.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-xl text-gray-600">
-            {`Aucun projet ${statusLabels[activeTab].toLowerCase()}`}
-          </p>
-          <p className="mt-2 text-gray-500">
-            {activeTab === 'draft' 
-              ? 'Créez un nouveau projet pour commencer' 
-              : 'Aucun projet publié pour le moment'}
-          </p>
-        </div>
+      {activeTab === 'published' ? (
+        // Affichage des vidéos publiées
+        videosLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-lg text-gray-600">Chargement des vidéos...</div>
+          </div>
+        ) : publishedVideos.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-xl text-gray-600">Aucune vidéo publiée</p>
+            <p className="mt-2 text-gray-500">
+              Les vidéos publiées apparaîtront ici une fois que vous aurez terminé et publié vos projets.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {publishedVideos.map((video) => (
+              <VideoCard 
+                key={video.id}
+                video={video}
+              />
+            ))}
+          </div>
+        )
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map((project) => (
-            <div key={project._id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <div className="p-4">
-                <h2 className="text-xl font-semibold mb-2">{project.title}</h2>
-                <p className="text-gray-600 mb-4 line-clamp-2">{project.description || 'Aucune description'}</p>
-                
-                <div className="flex items-center justify-between">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    statusColors[project.status] || 'bg-gray-200 text-gray-800'
-                  }`}>
-                    {project.status === 'draft' ? 'Brouillon' :
-                     project.status === 'rendering' ? 'En cours de rendu' :
-                     project.status === 'completed' ? 'Terminé' :
-                     project.status === 'published' ? 'Publié' :
-                     project.status === 'error' ? 'Erreur' :
-                     project.status}
-                  </span>
+        // Affichage des projets brouillons
+        filteredProjects.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-xl text-gray-600">Aucun projet en brouillon</p>
+            <p className="mt-2 text-gray-500">
+              Créez un nouveau projet pour commencer
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredProjects.map((project) => (
+              <div key={project._id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-2">{project.title}</h2>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{project.description || 'Aucune description'}</p>
                   
-                  <span className="text-xs text-gray-500">
-                    Mis à jour le {new Date(project.updatedAt).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <Link 
-                    href={`/project/${project._id}`} 
-                    className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
-                  >
-                    Éditer
-                  </Link>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      statusColors[project.status] || 'bg-gray-200 text-gray-800'
+                    }`}>
+                      {project.status === 'draft' ? 'Brouillon' :
+                       project.status === 'rendering' ? 'En cours de rendu' :
+                       project.status === 'completed' ? 'Terminé' :
+                       project.status === 'published' ? 'Publié' :
+                       project.status === 'error' ? 'Erreur' :
+                       project.status}
+                    </span>
+                    
+                    <span className="text-xs text-gray-500">
+                      Mis à jour le {new Date(project.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
                   
-                  <div className="text-xs text-gray-500">
-                    ID: {project._id}
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                    <Link 
+                      href={`/project/${project._id}`} 
+                      className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+                    >
+                      Éditer
+                    </Link>
+                    
+                    <div className="text-xs text-gray-500">
+                      ID: {project._id}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );

@@ -4,6 +4,7 @@ export * from "./CloudinaryImage";
 export * from "./CloudinaryVideoThumbnail";
 export * from "./VideoThumbnail";
 export { default as VideoPreview } from "./VideoPreview";
+export { default as VideoCard } from "./VideoCard";
 export * from "./OptimizedImage";
 export { default as BackButton } from "./BackButton";
 export { default as ArticleDetails } from "./ArticleDetails";

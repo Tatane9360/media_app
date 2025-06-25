@@ -48,9 +48,9 @@ const Navbar = () => {
         <Icon 
           name="home" 
           size={28} 
-          color={isActive(homePath) ? '#F6F6F6' : '#171725'} 
+          color={isActive(homePath) ? '#F26B3D' : '#F6F6F6'} 
         />
-        <span className="text-xs" style={{ color: isActive(homePath) ? '#F6F6F6' : '#171725' }}>Accueil</span>
+        <span className="text-xs" style={{ color: isActive(homePath) ? '#F26B3D' : '#F6F6F6' }}>Accueil</span>
       </Link>
 
       {isAuthenticated && (
@@ -59,9 +59,9 @@ const Navbar = () => {
             <Icon 
               name="bento"
               size={28} 
-              color={isActive('/admin') ? '#F6F6F6' : '#171725'} 
+              color={isActive('/admin') ? '#F26B3D' : '#F6F6F6'} 
             />
-            <span className="text-xs" style={{ color: isActive('/admin') ? '#F6F6F6' : '#171725' }}>À la une</span>
+            <span className="text-xs" style={{ color: isActive('/admin') ? '#F26B3D' : '#F6F6F6' }}>À la une</span>
           </Link>
         </>
       )}
@@ -70,18 +70,18 @@ const Navbar = () => {
         <Icon 
           name="document" 
           size={28} 
-          color={isActive('/blog') ? '#F6F6F6' : '#171725'} 
+          color={isActive('/blog') ? '#F26B3D' : '#F6F6F6'} 
         />
-        <span className="text-xs" style={{ color: isActive('/blog') ? '#F6F6F6' : '#171725' }}>actualité</span>
+        <span className="text-xs" style={{ color: isActive('/blog') ? '#F26B3D' : '#F6F6F6' }}>actualité</span>
       </Link>
       
       <Link href={videosPath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="youtube" 
           size={28} 
-          color={isActive(videosPath) || pathname?.includes('project') ? '#F6F6F6' : '#171725'} 
+          color={isActive(videosPath) || pathname?.includes('project') ? '#F26B3D' : '#F6F6F6'} 
         />
-        <span className="text-xs" style={{ color: isActive(videosPath) || pathname?.includes('project') ? '#F6F6F6' : '#171725' }}>
+        <span className="text-xs" style={{ color: isActive(videosPath) || pathname?.includes('project') ? '#F26B3D' : '#F6F6F6' }}>
           {isAuthenticated ? 'Projets' : 'Vidéos'}
         </span>
       </Link>
@@ -93,9 +93,9 @@ const Navbar = () => {
               name="arrowLeft"
               // TODO : Change to logout icon
               size={28} 
-              color="#171725" 
+              color="#F6F6F6" 
             />
-            <span className="text-xs" style={{ color: '#171725' }}>Déconnexion</span>
+            <span className="text-xs" style={{ color: '#F6F6F6' }}>Déconnexion</span>
           </button>
         </>
       )}
