@@ -118,7 +118,7 @@ export default function BlogPage() {
                   {/* Dégradé pour le texte */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#23233b] via-[#23233b]/70 to-transparent rounded-3xl"></div>
                   {/* Date */}
-                  <div className="absolute top-21 left-3 bg-[#23233b]/70 px-2 py-1 rounded text-xs text-white font-semibold">
+                  <div className="absolute top-13 left-3 bg-[#23233b]/70 px-2 py-1 rounded text-xs text-white font-semibold">
                     {formatDate(article.createdAt)}
                   </div>
                   {/* Contenu texte */}
@@ -132,7 +132,7 @@ export default function BlogPage() {
                     className="absolute bottom-4 right-4 bg-[#ff7f32] w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:bg-[#ff7f32]/90 transition-transform duration-300 hover:scale-110"
                   >
                     <Icon name="arrowRight" size={20} color="white" />
-                  </Link>              </div>
+                  </Link> </div>
               </article>
             )))}
         </div>

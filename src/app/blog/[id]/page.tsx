@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
+import { useParams } from 'next/navigation';
+import { Footer, Header } from '@/components';
 
 interface Article {
     _id: string;
@@ -20,21 +22,22 @@ interface Article {
     updatedAt: string;
 }
 
-interface ArticleDetailPageProps {
-    params: {
-        id: string;
-    };
-}
+// Supprimez l'interface et la dépendance aux props
+export default function ArticleDetailPage() {
+    // Utilisez useParams() à la place de props.params
+    const params = useParams();
+    const id = params.id as string;
 
-export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
     const [article, setArticle] = useState<Article | null>(null);
+    const [recentArticles, setRecentArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchArticle = async () => {
             try {
-                const response = await fetch(`/api/articles/${params.id}`);
+                // Utilisez l'ID obtenu via useParams
+                const response = await fetch(`/api/articles/${id}`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -49,12 +52,34 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
             }
         };
 
+        const fetchRecentArticles = async () => {
+            try {
+                const response = await fetch(`/api/articles?limit=4`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Filtrer l'article actuel s'il existe dans les résultats
+                    const filteredArticles = data.articles.filter((a: Article) => a._id !== id);
+                    // Prendre les 3 premiers articles
+                    setRecentArticles(filteredArticles.slice(0, 3));
+                }
+            } catch (err) {
+                console.error("Erreur lors du chargement des articles récents", err);
+            }
+        };
+
         fetchArticle();
-    }, [params.id]);
+        fetchRecentArticles();
+    }, [id]); // Utilisez id comme dépendance au lieu de params.id
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().substring(2)}`;
+    };
+
+    // Fonction pour tronquer le titre s'il est trop long
+    const truncateTitle = (title: string, maxLength: number = 25) => {
+        return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
     };
 
     if (loading) {
@@ -82,29 +107,14 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-[var(--secondary)] pt-4 sm:pt-6 pb-24">
-            <div className="px-4 sm:px-6 md:px-8 max-w-4xl mx-auto">
-                <div className="mb-4 sm:mb-6">
-                    <Link href="/blog" className="text-[var(--foreground)] flex items-center gap-2 hover:text-[var(--main)] transition-colors">
-                        <Icon name="arrowLeft" size={16} />
-                        <span>Retour aux actualités</span>
-                    </Link>
-                </div>
-
-                <article>
-                    <header className="mb-4 sm:mb-6">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--foreground)] mb-2">
-                            {article.title}
-                        </h1>
-                        <div className="flex items-center gap-4 text-xs sm:text-sm text-[var(--foreground)] opacity-80">
-                            <div className="flex items-center gap-1">
-                                <span>{formatDate(article.createdAt)}</span>
-                            </div>
-                        </div>
-                    </header>
-
-                    {article.image && (
-                        <div className="relative h-[200px] sm:h-[300px] mb-4 sm:mb-6 rounded-lg overflow-hidden shadow-lg">
+        <>
+            <Header />
+            <main className="min-h-screen bg-[var(--background)] flex flex-col items-center">
+ 
+                {article.image && (
+                    <div className="w-full relative">
+                        <div className="absolute top-0 left-0 w-full h-[220px] sm:h-[260px] bg-[var(--secondary)] rounded-b-[32px] z-10" />
+                        <div className="relative w-full h-[220px] sm:h-[260px] rounded-b-[32px] overflow-hidden z-20">
                             <Image
                                 src={article.image}
                                 alt={`Image pour ${article.title}`}
@@ -112,24 +122,69 @@ export default function ArticleDetailPage({ params }: ArticleDetailPageProps) {
                                 className="object-cover"
                                 priority
                             />
+                            <div className="absolute inset-0 bg-black/30" />
                         </div>
-                    )}
-                    <div className="prose prose-invert max-w-none text-[var(--foreground)] text-sm sm:text-base" style={{ whiteSpace: 'pre-wrap' }}>
-                        {article.content}
-                    </div>
 
-                    <div className="mt-8 sm:mt-12 border-t border-[var(--foreground)]/20 pt-4 sm:pt-6">
-                        <Link href="/blog" className="inline-block">
-                            <Button variant="primary" size="sm" className="sm:hidden" icon="arrowLeft" iconPosition="left">
-                                Retour
-                            </Button>
-                            <Button variant="primary" size="md" className="hidden sm:flex" icon="arrowLeft" iconPosition="left">
-                                Voir d&apos;autres actualités
-                            </Button>
-                        </Link>
+
+                        <div className="absolute top-6 left-6 z-30 flex items-center gap-4">
+
+                            <Link
+                                href="/blog"
+                                className="bg-[var(--main)] rounded-full p-2 shadow-md flex items-center justify-center hover:bg-[#ff7c4a] transition"
+                            >
+                                <Icon name="arrowLeft" size={20} color="#fff" />
+                            </Link>
+                        </div>
                     </div>
-                </article>
-            </div>
-        </main>
+                )}
+
+          
+                <div className="relative z-30 w-[100vw] mx-auto -mt-14 pb-8">
+                    <article className="bg-[var(--background)] rounded-3xl shadow-lg px-6 py-8 text-[var(--foreground)]">
+                        <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <h1 className="text-2xl font-bold uppercase tracking-wide">{article.title}</h1>
+                            <span className="text-xs opacity-70 mt-1 sm:mt-0">{formatDate(article.createdAt)}</span>
+                        </header>
+                        <div
+                            className="text-[var(--foreground)] text-base leading-relaxed opacity-90 mb-4"
+                            style={{ whiteSpace: 'pre-line' }}
+                        >
+                            {article.content}
+                        </div>
+                    </article>
+                </div>
+
+         
+                <section className="w-full max-w-md mx-auto px-6 mb-8">
+                    <h2 className="text-[var(--foreground)] text-base font-semibold mb-3">DÉCOUVREZ AUSSI</h2>
+                    <div className="flex gap-3">
+                        {recentArticles.length > 0 ? (
+                            recentArticles.map((recentArticle) => (
+                                <Link href={`/blog/${recentArticle._id}`} key={recentArticle._id} className="flex-1 group">
+                                    <div className="rounded-xl overflow-hidden shadow bg-[var(--navy)] transition group-hover:scale-105">
+                                        <div className="w-full h-[80px] relative">
+                                            <Image
+                                                src={recentArticle.image || "/placeholder-image.jpg"}
+                                                alt={recentArticle.title}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <div className="p-2 text-xs text-[var(--foreground)]">
+                                            {truncateTitle(recentArticle.title.toUpperCase())}
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))
+                        ) : (
+                            <div className="w-full text-center text-[var(--foreground)] text-sm opacity-70">
+                                Aucun autre article disponible pour le moment
+                            </div>
+                        )}
+                    </div>
+                </section>
+            </main>
+            <Footer />
+        </>
     );
 }
