@@ -3,16 +3,7 @@
 @theme {
   --color-dark: #171725;
   --color-navy: #34344A;
-  --color-orange: #F36B3D;
-  --color-light: #F6F6F6;
-  
-  --font-family-sans: var(--font-poppins), system-ui, sans-serif;
-}
-
-@theme {
-  --color-dark: #171725;
-  --color-navy: #34344A;
-  --color-orange: #F36B3D;
+  --color-orange: #F26B3D;
   --color-light: #F6F6F6;
 
   --font-family-sans: var(--font-poppins), system-ui, sans-serif;
