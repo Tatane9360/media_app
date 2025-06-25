@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Icon from './Icon';
 import Link from 'next/link';
@@ -9,7 +10,11 @@ import { useAuth } from '@hooks';
 const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, loading, logout } = useAuth();
+  const { isAuthenticated, loading, logout, checkAuth } = useAuth();
+
+  useEffect(() => {
+    checkAuth();
+  }, [pathname, checkAuth]);
 
   const isActive = (path: string) => {
     const active = path === '/' ? pathname === '/' : pathname?.startsWith(path);
@@ -38,49 +43,60 @@ const Navbar = () => {
   const homePath = getHomeLink();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-navy flex items-center justify-around z-50">
-      <Link href={homePath} className="flex flex-col items-center">
+    <nav className="fixed bottom-0 left-0 right-0 h-fit w-[100dvw] px-4 py-6 bg-navy flex items-center justify-around z-50">
+      <Link href={homePath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="home" 
           size={28} 
-          color={isActive(homePath) || (isAuthenticated && isActive('/admin')) ? '#F36B3D' : '#F6F6F6'} 
+          color={isActive(homePath) ? '#F6F6F6' : '#171725'} 
         />
-      </Link>
-      
-      <Link href="/blog" className="flex flex-col items-center">
-        <Icon 
-          name="document" 
-          size={28} 
-          color={isActive('/blog') ? '#F36B3D' : '#F6F6F6'} 
-        />
-      </Link>
-      
-      <Link href={videosPath} className="flex flex-col items-center">
-        <Icon 
-          name="youtube" 
-          size={28} 
-          color={isActive(videosPath) ? '#F36B3D' : '#F6F6F6'} 
-        />
+        <span className="text-xs" style={{ color: isActive(homePath) ? '#F6F6F6' : '#171725' }}>Accueil</span>
       </Link>
 
       {isAuthenticated && (
         <>
-          <Link href="/admin" className="flex flex-col items-center">
+          <Link href="/" className="flex flex-col items-center gap-0.5">
             <Icon 
               name="bento"
-              // TODO : Change after creating "à la une" page
               size={28} 
-              color={isActive('/admin') ? '#F36B3D' : '#F6F6F6'} 
+              // TODO : Change after creating "à la une" page
+              color={isActive('/') ? '#F6F6F6' : '#171725'} 
             />
+            <span className="text-xs" style={{ color: isActive('/') ? '#F6F6F6' : '#171725' }}>À la une</span>
           </Link>
-          
-          <button onClick={handleLogout} className="flex flex-col items-center">
+        </>
+      )}
+
+      <Link href="/blog" className="flex flex-col items-center gap-0.5">
+        <Icon 
+          name="document" 
+          size={28} 
+          color={isActive('/blog') ? '#F6F6F6' : '#171725'} 
+        />
+        <span className="text-xs" style={{ color: isActive('/blog') ? '#F6F6F6' : '#171725' }}>actualité</span>
+      </Link>
+      
+      <Link href={videosPath} className="flex flex-col items-center gap-0.5">
+        <Icon 
+          name="youtube" 
+          size={28} 
+          color={isActive(videosPath) || pathname?.includes('project') ? '#F6F6F6' : '#171725'} 
+        />
+        <span className="text-xs" style={{ color: isActive(videosPath) || pathname?.includes('project') ? '#F6F6F6' : '#171725' }}>
+          {isAuthenticated ? 'Projets' : 'Vidéos'}
+        </span>
+      </Link>
+
+      {isAuthenticated && (
+        <>
+          <button onClick={handleLogout} className="flex flex-col items-center gap-0.5">
             <Icon 
               name="arrowLeft"
               // TODO : Change to logout icon
               size={28} 
-              color="#F6F6F6" 
+              color="#171725" 
             />
+            <span className="text-xs" style={{ color: '#171725' }}>Déconnexion</span>
           </button>
         </>
       )}

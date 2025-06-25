@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { Admin } from "@interface";
 
@@ -15,11 +15,7 @@ export const useAuth = () => {
     loading: true,
   });
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/me", {
         credentials: "include",
@@ -47,7 +43,11 @@ export const useAuth = () => {
         loading: false,
       });
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const logout = async () => {
     try {
@@ -66,9 +66,35 @@ export const useAuth = () => {
     }
   };
 
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        // Rechecker l'état d'authentification après login
+        await checkAuth();
+        return { success: true };
+      } else {
+        const data = await response.json();
+        return { success: false, error: data.error || "Login failed" };
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      return { success: false, error: "An error occurred during login" };
+    }
+  };
+
   return {
     ...authState,
     checkAuth,
     logout,
+    login,
   };
 };
