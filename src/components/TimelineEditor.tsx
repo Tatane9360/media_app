@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Timeline, Clip, AudioTrack } from '@/interface/iProject';
 import { VideoAsset } from '@/interface/iVideoAsset';

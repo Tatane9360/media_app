@@ -6,7 +6,7 @@ import { useArticleStore } from '@/store/articleStore';
 import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
-import { Footer, Header } from '@/components';
+import { BackButton, Footer, Header } from '@/components';
 
 export default function BlogPage() {
   const { articles: apiArticles, loading, fetchArticles, error } = useArticleStore();
@@ -76,14 +76,9 @@ export default function BlogPage() {
 
   return (
     <>
-      <Header />
       <main className="min-h-screen bg-[var(--background)] pt-6 pb-24">        {/* Bouton retour */}
         <div className="flex items-center px-4 mb-4">
-          <Link href="/">
-            <div className="w-10 h-10 rounded-full bg-[#ff7f32] flex items-center justify-center shadow-md mr-3 mx-5 cursor-pointer hover:bg-[#ff7f32]/90 transition-transform duration-300 hover:scale-105">
-              <Icon name="arrowLeft" size={24} color="white" />
-            </div>
-          </Link>
+          <BackButton variant="icon-only" />
         </div>
         <h1 className="text-white text-2xl mx-10 mt-0 mb-6 font-bold tracking-widest">ACTUALITÉS</h1>        <div className="px-4 max-w-lg mx-auto">
           {articles.length === 0 ? (
@@ -137,7 +132,6 @@ export default function BlogPage() {
             )))}
         </div>
       </main>
-      <Footer />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import "@uiw/react-md-editor/markdown-editor.css";
 import Navbar from "@/components/Navbar";
+import { Footer, Header } from "@/components";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -32,7 +33,11 @@ export default function RootLayout({
         className={`${poppins.variable} antialiased pb-16`}
         suppressHydrationWarning={true}
       >
-        {children}
+        <Header />
+        <main className="min-h-screen">
+          {children}
+        </main>
+        <Footer />
         <Navbar />
       </body>
     </html>
