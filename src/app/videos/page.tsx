@@ -78,7 +78,7 @@ export default function Videos() {
   }
 
   return (
-    <div className="min-h-scree gap-3 flex flex-col px-4 py-5">
+    <div className="min-h-screen gap-3 flex flex-col px-4 py-5">
 
       {/* Header */}
       <div className='flex flex-col gap-4'>

@@ -17,7 +17,7 @@ export async function GET(
     // Récupérer le projet avec ses détails complets
     const project = (await Project.findById(id)
       .select(
-        "name description publishedUrl thumbnailUrl timeline renderSettings createdAt updatedAt admin_id"
+        "title description publishedUrl thumbnailUrl timeline renderSettings createdAt updatedAt admin_id"
       )
       .lean()) as any;
 
@@ -40,7 +40,7 @@ export async function GET(
     const video = {
       id: project._id.toString(),
       title:
-        project.name ||
+        project.title ||
         `Vidéo du ${new Date(project.createdAt).toLocaleDateString("fr-FR")}`,
       description: project.description || "",
       videoUrl: project.publishedUrl,

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { BackButton } from '@/components';
 
 interface Video {
   id: string;
@@ -29,27 +31,56 @@ interface VideoResponse {
   error?: string;
 }
 
+interface VideosResponse {
+  success: boolean;
+  data: {
+    videos: Video[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  };
+}
+
 export default function VideoDetail() {
   const [video, setVideo] = useState<Video | null>(null);
+  const [otherVideos, setOtherVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const params = useParams();
-  const router = useRouter();
   const videoId = params.videoId as string;
 
   useEffect(() => {
     const fetchVideo = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/videos/${videoId}`);
-        const data: VideoResponse = await response.json();
         
-        if (data.success) {
-          setVideo(data.data.video);
+        // Récupérer la vidéo actuelle
+        const videoResponse = await fetch(`/api/videos/${videoId}`);
+        const videoData: VideoResponse = await videoResponse.json();
+        
+        if (videoData.success) {
+          setVideo(videoData.data.video);
         } else {
-          setError(data.error || 'Vidéo non trouvée');
+          setError(videoData.error || 'Vidéo non trouvée');
+          return;
         }
+
+        // Récupérer les autres vidéos
+        const videosResponse = await fetch('/api/videos?limit=6');
+        const videosData: VideosResponse = await videosResponse.json();
+        
+        if (videosData.success) {
+          // Filtrer pour exclure la vidéo actuelle
+          const filtered = videosData.data.videos.filter(v => v.id !== videoId);
+          setOtherVideos(filtered.slice(0, 5)); // Limiter à 5 autres vidéos
+        }
+        
       } catch (err) {
         setError('Erreur de connexion');
         console.error('Erreur:', err);
@@ -62,32 +93,6 @@ export default function VideoDetail() {
       fetchVideo();
     }
   }, [videoId]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const copyToClipboard = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      // Vous pouvez ajouter une notification toast ici
-      alert('Lien copié dans le presse-papier !');
-    } catch (err) {
-      console.error('Erreur lors de la copie:', err);
-    }
-  };
 
   if (loading) {
     return (
@@ -114,30 +119,16 @@ export default function VideoDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Navigation */}
-      <div className="bg-gray-800 p-4">
-        <div className="container mx-auto flex items-center space-x-4">
-          <button 
-            onClick={() => router.back()}
-            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Retour</span>
-          </button>
-          <Link href="/videos" className="text-purple-400 hover:text-purple-300 transition-colors">
-            Toutes les vidéos
-          </Link>
-        </div>
+    <div className="min-h-screen gap-3 flex flex-col px-4 py-5">
+      <div className='flex flex-col gap-4'>
+        <BackButton variant='icon-only' />
+        <h1 className="font-bold  uppercase tracking-wide">{video.title}</h1>
       </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Video Player */}
-          <div className="lg:col-span-2">
-            <div className="relative bg-black rounded-xl overflow-hidden">
+      <div className="flex flex-col gap-8">
+        {/* Video Player */}
+        <div className="flex flex-col gap-[30px]">
+          <div className="relative rounded-4xl overflow-hidden">
               <div className="aspect-video relative">
                 {!isPlaying ? (
                   <div 
@@ -145,15 +136,10 @@ export default function VideoDetail() {
                     style={{ backgroundImage: `url(${video.thumbnailUrl})` }}
                     onClick={() => setIsPlaying(true)}
                   >
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                      <div className="w-20 h-20 bg-white bg-opacity-90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg className="w-8 h-8 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M8 5v10l8-5-8-5z"/>
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 px-3 py-1 rounded text-sm">
-                      {video.duration > 0 && formatDuration(video.duration)}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg width="43" height="53" viewBox="0 0 43 53" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.481 1.32871C3.8181 -0.365867 0.333496 1.54699 0.333496 4.70335V48.4633C0.333496 51.6197 3.8181 53.5325 6.481 51.8379L40.8638 29.958C43.3338 28.3862 43.3338 24.7805 40.8638 23.2087L6.481 1.32871Z" fill="white"/>
+                      </svg>
                     </div>
                   </div>
                 ) : (
@@ -168,122 +154,54 @@ export default function VideoDetail() {
                   </video>
                 )}
               </div>
-            </div>
-
-            {/* Video Info */}
-            <div className="mt-6">
-              <h1 className="text-3xl font-bold mb-4">{video.title}</h1>
-              
-              {video.description && (
-                <div className="bg-gray-800 rounded-lg p-4 mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Description</h3>
-                  <p className="text-gray-300 leading-relaxed">{video.description}</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex flex-wrap gap-4 mb-6">
-                <button
-                  onClick={() => copyToClipboard(video.videoUrl)}
-                  className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <span>Copier le lien</span>
-                </button>
-
-                <a
-                  href={video.videoUrl}
-                  download={`${video.title}.${video.renderSettings?.format || 'mp4'}`}
-                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Télécharger</span>
-                </a>
-              </div>
-            </div>
           </div>
+          <div>
+              {video.description ? <p>{video.description}</p> : <p>Aucune description disponible</p>}
+          </div>
+        </div>
+        <div className='flex flex-col gap-5'>
+          <h2 className='uppercase'>Découvre aussi</h2>
+          
+          {otherVideos.length > 0 ? (
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex gap-4 pb-4" style={{ width: 'max-content' }}>
+                {otherVideos.map((otherVideo) => (
+                  <div key={otherVideo.id} className="group flex-shrink-0 w-80">
+                    <Link href={`/videos/${otherVideo.id}`}>
+                      <div className="overflow-hidden rounded-2xl bg-gray-800 hover:bg-gray-700 transition-all duration-300">
+                        {/* Thumbnail */}
+                        <div className="relative aspect-video">
+                          <Image
+                            src={otherVideo.thumbnailUrl}
+                            alt={otherVideo.title}
+                            fill
+                            className="object-cover rounded-t-2xl"
+                            sizes="320px"
+                          />
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Video Details */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Détails de la vidéo</h3>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Créé le:</span>
-                  <span>{formatDate(video.createdAt)}</span>
-                </div>
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Modifié le:</span>
-                  <span>{formatDate(video.updatedAt)}</span>
-                </div>
-                
-                {video.duration > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Durée:</span>
-                    <span>{formatDuration(video.duration)}</span>
+                          {/* Arrow Button - Always visible */}
+                          <div className="absolute bottom-6 right-6 w-14 h-14 bg-orange rounded-full flex items-center justify-center hover:bg-orange/80 transition-colors duration-300">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                        
+                        {/* Title below thumbnail */}
+                        <div className="p-6">
+                          <h3 className="text-2xl font-bold text-white uppercase tracking-wide">
+                            {otherVideo.title}
+                          </h3>
+                        </div>
+                      </div>
+                    </Link>
                   </div>
-                )}
-                
-                {video.renderSettings && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Format:</span>
-                      <span className="uppercase">{video.renderSettings.format}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Qualité:</span>
-                      <span className="capitalize">{video.renderSettings.quality}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Codec:</span>
-                      <span className="uppercase">{video.renderSettings.codec}</span>
-                    </div>
-                  </>
-                )}
+                ))}
               </div>
             </div>
-
-            {/* Share Section */}
-            <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Partager</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={video.videoUrl}
-                    readOnly
-                    className="flex-1 bg-gray-700 text-sm px-3 py-2 rounded border-none outline-none"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(video.videoUrl)}
-                    className="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Back to Projects */}
-            <Link 
-              href="/projects"
-              className="block w-full bg-orange-600 hover:bg-orange-700 text-center py-3 rounded-lg transition-colors"
-            >
-              Retour aux projets
-            </Link>
-          </div>
+          ) : (
+            <p className="text-gray-400">Aucune autre vidéo disponible pour le moment.</p>
+          )}
         </div>
       </div>
     </div>
