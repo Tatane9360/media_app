@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { VideoCard, ProjectCard, Button } from '@/components';
+import { useVideosData, useProjectsData } from '@/hooks';
 
 interface Project {
   _id: string;
@@ -15,11 +16,11 @@ interface Project {
 interface Video {
   id: string;
   title: string;
-  description: string;
-  videoUrl: string;
+  description?: string;
+  videoUrl?: string;
   thumbnailUrl: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 type ProjectStatus = 'published' | 'draft';
@@ -31,60 +32,61 @@ const statusLabels: Record<ProjectStatus, string> = {
 
 export default function ProjectList() {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [publishedVideos, setPublishedVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [videosLoading, setVideosLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectStatus>('published');
+  
+  // Hooks de cache pour les données
+  const videosData = useVideosData();
+  const projectsData = useProjectsData();
+  
+  // États locaux
+  const [publishedVideos, setPublishedVideos] = useState<Video[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
 
   // Charger la liste des projets
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        
-        // Récupérer les projets
-        const response = await fetch('/api/project');
-        
-        if (!response.ok) {
-          throw new Error('Impossible de charger les projets');
-        }
-        
-        const data = await response.json();
-        setProjects(data.projects || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue');
-      } finally {
-        setLoading(false);
+    const loadProjects = async () => {
+      const result = await projectsData.fetchProjects();
+      if (result) {
+        setProjects(result.projects);
       }
     };
     
-    fetchProjects();
-  }, []);
+    loadProjects();
+  }, [projectsData]);
 
   // Charger les vidéos publiées quand l'onglet "published" est actif
   useEffect(() => {
-    const fetchPublishedVideos = async () => {
+    const loadPublishedVideos = async () => {
       if (activeTab !== 'published') return;
       
-      try {
-        setVideosLoading(true);
-        const response = await fetch('/api/videos?limit=50'); // Récupérer plus de vidéos
+      const result = await videosData.fetchVideos(currentPage, 12);
+      if (result) {
+        setPublishedVideos(result.videos);
+        setPagination(result.pagination);
         
-        if (response.ok) {
-          const data = await response.json();
-          setPublishedVideos(data.data.videos || []);
+        // Précharger la page suivante si elle existe
+        if (result.pagination.hasNext) {
+          videosData.prefetchNextPage(currentPage, 12, true);
         }
-      } catch (err) {
-        console.error('Erreur lors du chargement des vidéos:', err);
-      } finally {
-        setVideosLoading(false);
       }
     };
 
-    fetchPublishedVideos();
-  }, [activeTab]);
+    loadPublishedVideos();
+  }, [activeTab, currentPage, videosData]);
+
+  // États de chargement et d'erreur combinés
+  const loading = projectsData.loading;
+  const videosLoading = videosData.loading;
+  const error = projectsData.error || videosData.error;
 
   // Filtrer les projets selon l'onglet actif
   const filteredProjects = activeTab === 'published' 
@@ -92,10 +94,10 @@ export default function ProjectList() {
     : projects.filter(project => project.status !== 'published');
 
   // Compter les projets par catégorie
-  const publishedCount = publishedVideos.length; // Compter les vidéos publiées, pas les projets
+  const publishedCount = publishedVideos.length;
   const draftCount = projects.filter(project => project.status !== 'published').length;
 
-  if (loading) {
+  if (loading && projects.length === 0) {
     return (
       <div className="container mx-auto p-4">
         <div className="flex items-center justify-center h-screen">
@@ -105,7 +107,7 @@ export default function ProjectList() {
     );
   }
 
-  if (error) {
+  if (error && projects.length === 0 && publishedVideos.length === 0) {
     return (
       <div className="container mx-auto p-4">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -165,14 +167,41 @@ export default function ProjectList() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {publishedVideos.map((video) => (
-              <VideoCard 
-                key={video.id}
-                video={video}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {publishedVideos.map((video) => (
+                <VideoCard 
+                  key={video.id}
+                  video={video}
+                />
+              ))}
+            </div>
+            
+            {/* Pagination pour les vidéos */}
+            {pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-8">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={!pagination.hasPrev || videosLoading}
+                  className="px-4 py-2 bg-main text-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-main/90 transition-colors"
+                >
+                  Précédent
+                </button>
+                
+                <span className="text-foreground">
+                  Page {pagination.page} sur {pagination.totalPages}
+                </span>
+                
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={!pagination.hasNext || videosLoading}
+                  className="px-4 py-2 bg-main text-background rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-main/90 transition-colors"
+                >
+                  Suivant
+                </button>
+              </div>
+            )}
+          </>
         )
       ) : (
         // Affichage des projets brouillons

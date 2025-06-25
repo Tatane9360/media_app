@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/hooks";
+import { useAuth, useAdminStats } from "@/hooks";
 import { Button, Icon } from "@/components";
 
 interface Stats {
@@ -12,10 +12,25 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats>({ videos: 0, articles: 0 });
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const adminStats = useAdminStats();
+  const [stats, setStats] = useState<Stats>({ videos: 0, articles: 0 });
+
+  const loadStats = useCallback(async () => {
+    try {
+      const result = await adminStats.fetchStats();
+      if (result) {
+        setStats({
+          videos: result.videos || 0,
+          articles: result.articles || 0
+        });
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des stats:', error);
+      // Garder les stats par défaut en cas d'erreur
+    }
+  }, [adminStats]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -24,28 +39,16 @@ export default function AdminDashboard() {
     }
     
     if (isAuthenticated) {
-      fetchStats();
-    }
-  }, [isAuthenticated, authLoading, router]);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch("/api/admin/stats", {
-        credentials: "include",
-      });
+      // Petit délai pour éviter les conflits de racing condition
+      const timer = setTimeout(() => {
+        loadStats();
+      }, 100);
       
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des statistiques:", error);
-    } finally {
-      setLoading(false);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [isAuthenticated, authLoading, router, loadStats]);
 
-  if (loading || authLoading || !isAuthenticated) {
+  if (adminStats.loading || authLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-navy">
         <div className="text-lg font-semibold text-foreground">Chargement...</div>
@@ -53,12 +56,28 @@ export default function AdminDashboard() {
     );
   }
 
+  // Afficher un message d'erreur si nécessaire, mais ne pas bloquer l'interface
+  const hasError = adminStats.error && stats.videos === 0 && stats.articles === 0;
+
   return (
     <div className="p-6">
       <div className="max-w-4xl mx-auto">
         {/* Dashboard Header */}
         <div className="bg-navy rounded-2xl p-8 mb-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-8">DASHBOARD</h1>
+          
+          {hasError && (
+            <div className="bg-red-500 text-white p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
+              <span>Erreur lors du chargement des statistiques.</span>
+              <button 
+                onClick={() => loadStats()}
+                className="bg-white text-red-500 px-3 py-1 rounded text-xs hover:bg-gray-100"
+              >
+                Recharger
+              </button>
+            </div>
+          )}
+          
           <div className="flex justify-center gap-16">
             <div className="text-center">
               <div className="text-3xl font-bold text-orange mb-2">{stats.videos}</div>
