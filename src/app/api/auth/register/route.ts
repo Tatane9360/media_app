@@ -1,30 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { connectDB } from '@/lib/mongodb';
-import { Admin } from '@/models/Admin';
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { connectDB } from "@/lib/mongodb";
+import { Admin } from "@/models/Admin";
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    
-    const { email, password } = await request.json();
+
+    const { email, password, username } = await request.json();
 
     // Validate input
-    if (!email || !password) {
+    if (!email || !password || !username) {
       return NextResponse.json(
-        { error: 'Email et mot de passe requis' },
+        { error: "Email, mot de passe et nom d'utilisateur requis" },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
-    const existingUser = await Admin.findOne({ email });
-
-    if (existingUser) {
+    // Validate username length
+    if (username.length < 3) {
       return NextResponse.json(
-        { error: 'Un utilisateur avec cet email existe déjà' },
+        { error: "Le nom d'utilisateur doit comporter au moins 3 caractères" },
         { status: 400 }
       );
+    }
+
+    // Check if user already exists (email or username)
+    const existingUser = await Admin.findOne({
+      $or: [{ email }, { username }],
+    });
+
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return NextResponse.json(
+          { error: "Un utilisateur avec cet email existe déjà" },
+          { status: 400 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: "Ce nom d'utilisateur est déjà pris" },
+          { status: 400 }
+        );
+      }
     }
 
     // Hash password
@@ -33,22 +50,22 @@ export async function POST(request: NextRequest) {
 
     // Create new user
     const newUser = new Admin({
+      username: username.trim(),
       email,
-      password: hashedPassword
+      password: hashedPassword,
     });
 
     await newUser.save();
 
     return NextResponse.json(
-      { message: 'Utilisateur créé avec succès' },
+      { message: "Utilisateur créé avec succès" },
       { status: 201 }
     );
-
   } catch (error) {
-    console.error('Erreur d\'inscription:', error);
+    console.error("Erreur d'inscription:", error);
     return NextResponse.json(
-      { error: 'Erreur serveur interne' },
+      { error: "Erreur serveur interne" },
       { status: 500 }
     );
   }
-};
+}
