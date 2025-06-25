@@ -1,28 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-dark: #171725;
+  --color-navy: #34344A;
+  --color-orange: #F36B3D;
+  --color-light: #F6F6F6;
 
-@theme inline {
+  --font-family-sans: var(--font-poppins), system-ui, sans-serif;
+
+  /* Couleurs Tailwind personnalisées */
+  --color-main: var(--main);
+  --color-secondary: var(--secondary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: var(--color-light);
+  --foreground: var(--color-dark);
+  --main: var(--color-orange);
+  --secondary: var(--color-navy);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--color-dark);
+    --foreground: var(--color-light);
+    --secondary: var(--color-navy);
+    --main: var(--color-orange);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Styles pour les h1 */
+h1 {
+  font-family: var(--font-poppins), 'Poppins', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 28px !important;
+  line-height: 38px !important;
+  letter-spacing: 0% !important;
+}
+
+/* Styles pour les h2 */
+h2 {
+  font-family: var(--font-poppins), 'Poppins', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  line-height: 100% !important;
+  letter-spacing: 0% !important;
 }
 
 /* Utilitaires personnalisés */
