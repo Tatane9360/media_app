@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button, VideoCard } from '@/components';
+import { VideoCard, ProjectCard, Button } from '@/components';
 
 interface Project {
   _id: string;
@@ -28,14 +27,6 @@ type ProjectStatus = 'published' | 'draft';
 const statusLabels: Record<ProjectStatus, string> = {
   published: 'Publiés',
   draft: 'Projects'
-};
-
-const statusColors: Record<string, string> = {
-  draft: 'bg-gray-200 text-gray-800',
-  rendering: 'bg-yellow-200 text-yellow-800',
-  completed: 'bg-green-200 text-green-800',
-  published: 'bg-blue-200 text-blue-800',
-  error: 'bg-red-200 text-red-800'
 };
 
 export default function ProjectList() {
@@ -193,44 +184,12 @@ export default function ProjectList() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredProjects.map((project) => (
-              <div key={project._id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-2">{project.title}</h2>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{project.description || 'Aucune description'}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      statusColors[project.status] || 'bg-gray-200 text-gray-800'
-                    }`}>
-                      {project.status === 'draft' ? 'Brouillon' :
-                       project.status === 'rendering' ? 'En cours de rendu' :
-                       project.status === 'completed' ? 'Terminé' :
-                       project.status === 'published' ? 'Publié' :
-                       project.status === 'error' ? 'Erreur' :
-                       project.status}
-                    </span>
-                    
-                    <span className="text-xs text-gray-500">
-                      Mis à jour le {new Date(project.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <Link 
-                      href={`/project/${project._id}`} 
-                      className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
-                    >
-                      Éditer
-                    </Link>
-                    
-                    <div className="text-xs text-gray-500">
-                      ID: {project._id}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ProjectCard 
+                key={project._id}
+                project={project}
+              />
             ))}
           </div>
         )
