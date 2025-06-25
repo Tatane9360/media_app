@@ -26,7 +26,7 @@
       "@components": ["./src/components/index.ts"],
       "@interface": ["./src/interface/index.ts"],
       "@hooks": ["./src/hooks/index.ts"],
-      "@utils": ["./src/utils/index.ts"],
+      "@utils": ["./src/utils/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/ArticleList.tsx", "src/components/ArticleEditor.tsx", "src/lib/mongoose.ts"],
