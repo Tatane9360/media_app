@@ -11,24 +11,19 @@ export async function GET(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
 
     if (!token) {
-      return NextResponse.json(
-        { error: "Token manquant" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token manquant" }, { status: 401 });
     }
 
     // Verify token
     const decoded = verifyToken(token);
-    
-    if (!decoded || typeof decoded === 'string') {
-      return NextResponse.json(
-        { error: "Token invalide" },
-        { status: 401 }
-      );
+
+    if (!decoded || typeof decoded === "string") {
+      return NextResponse.json({ error: "Token invalide" }, { status: 401 });
     }
 
     // Find user by ID
-    const admin = await Admin.findById((decoded as any).id).select("-password");
+    const decodedToken = decoded as { id: string; email: string };
+    const admin = await Admin.findById(decodedToken.id).select("-password");
 
     if (!admin) {
       return NextResponse.json(
@@ -41,10 +36,12 @@ export async function GET(request: NextRequest) {
       success: true,
       admin: {
         id: admin._id,
+        username: admin.username,
         email: admin.email,
+        createdAt: admin.createdAt,
+        updatedAt: admin.updatedAt,
       },
     });
-
   } catch (error) {
     console.error("Erreur lors de la récupération du profil:", error);
     return NextResponse.json(
