@@ -2,6 +2,16 @@ import mongoose from "mongoose";
 
 const AdminSchema = new mongoose.Schema(
   {
+    username: {
+      type: String,
+      required: [true, "Nom d'utilisateur requis"],
+      unique: true,
+      trim: true,
+      minlength: [
+        3,
+        "Le nom d'utilisateur doit comporter au moins 3 caractères",
+      ],
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
