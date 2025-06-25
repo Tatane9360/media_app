@@ -54,70 +54,72 @@ function LoginForm() {
   };
 
   return (
-    <div className="bg-navy rounded-2xl shadow-2xl w-full max-w-md p-4 flex flex-col gap-2.5">
-      <div className="text-center">
-        <h1 className="uppercase">Connexion</h1>
+    <div className='flex flex-col items-center'>
+      <div className="bg-navy rounded-2xl shadow-2xl w-full max-w-xl p-4 flex flex-col gap-2.5">
+        <div className="text-center">
+          <h1 className="uppercase">Connexion</h1>
+        </div>
+
+        {message && (
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg">
+            <p className="text-green-700 text-sm font-medium">{message}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+            <p className="text-red-700 text-sm font-medium">{error}</p>
+          </div>
+        )}
+
+        <form id="login-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-1.5'>
+              <label htmlFor="email" className="text-sm text-foreground">
+                E-MAIL*
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div className='flex flex-col gap-1.5'>
+              <label htmlFor="password" className="text-sm text-foreground">
+                  MOT DE PASSE*
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
+                placeholder="Enter your password"
+              />
+              <Link href="/forgot-password" className="text-sm hover:underline">
+                Mot de passe oublié ? // TODO : add forgot-password functionality
+              </Link>
+            </div>
+          </div>
+
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={loading}
+            onClick={handleButtonClick}
+          >
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </Button>
+        </form>
       </div>
-
-      {message && (
-        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg">
-          <p className="text-green-700 text-sm font-medium">{message}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-          <p className="text-red-700 text-sm font-medium">{error}</p>
-        </div>
-      )}
-
-      <form id="login-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <div className='flex flex-col gap-4'>
-          <div className='flex flex-col gap-1.5'>
-            <label htmlFor="email" className="text-sm text-foreground">
-              E-MAIL*
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
-              placeholder="Enter your email"
-            />
-          </div>
-
-          <div className='flex flex-col gap-1.5'>
-            <label htmlFor="password" className="text-sm text-foreground">
-                MOT DE PASSE*
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
-              placeholder="Enter your password"
-            />
-            <Link href="/forgot-password" className="text-sm hover:underline">
-              Mot de passe oublié ? // TODO : add forgot-password functionality
-            </Link>
-          </div>
-        </div>
-
-        <Button
-          variant="primary"
-          size="lg"
-          disabled={loading}
-          onClick={handleButtonClick}
-        >
-          {loading ? 'Connexion...' : 'Se connecter'}
-        </Button>
-      </form>
     </div>
   );
 }
@@ -142,7 +144,7 @@ function LoginLoading() {
 
 export default function Login() {
   return (
-    <div className="flex flex-col gap-6 justify-center p-4 mt-24">
+    <div className="flex flex-col gap-6 w-full justify-center p-4 mt-24">
       <BackButton variant='icon-only' />
       <Suspense fallback={<LoginLoading />}>
         <LoginForm />

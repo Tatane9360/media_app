@@ -55,14 +55,13 @@ const Navbar = () => {
 
       {isAuthenticated && (
         <>
-          <Link href="/" className="flex flex-col items-center gap-0.5">
+          <Link href="/admin" className="flex flex-col items-center gap-0.5">
             <Icon 
               name="bento"
               size={28} 
-              // TODO : Change after creating "à la une" page
-              color={isActive('/') ? '#F6F6F6' : '#171725'} 
+              color={isActive('/admin') ? '#F6F6F6' : '#171725'} 
             />
-            <span className="text-xs" style={{ color: isActive('/') ? '#F6F6F6' : '#171725' }}>À la une</span>
+            <span className="text-xs" style={{ color: isActive('/admin') ? '#F6F6F6' : '#171725' }}>À la une</span>
           </Link>
         </>
       )}
