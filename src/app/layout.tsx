@@ -1,8 +1,9 @@
+import React from 'react';
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import "@uiw/react-md-editor/markdown-editor.css";
-import Navbar from "@/components/Navbar";
+import ClientLayout from "@/components/ClientLayout";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -11,24 +12,22 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Media App - Admin Panel",
+  title: "Media App",
   description: "Admin panel for media application",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body
-        className={`${poppins.variable} antialiased pb-16`}
+        className={poppins.variable + " antialiased"}
         suppressHydrationWarning={true}
       >
-        {children}
-        <Navbar />
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
 }
+
+
+
