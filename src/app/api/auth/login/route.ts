@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!admin) {
       return NextResponse.json(
-        { error: "Identifiants invalides email" },
+        { error: "Identifiants invalides" },
         { status: 401 }
       );
     }
@@ -32,11 +32,10 @@ export async function POST(request: NextRequest) {
 
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: "Identifiants invalides password" },
+        { error: "Identifiants invalides" },
         { status: 401 }
       );
     }
-    await admin.save();
 
     // Generate JWT token
     const token = signToken({

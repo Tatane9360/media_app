@@ -8,27 +8,19 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email, password, username } = await request.json();
+    const { email, password } = await request.json();
 
     // Validate input
-    if (!email || !password || !username) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: "Email, mot de passe et nom d'utilisateur requis" },
+        { error: "Email et mot de passe requis" },
         { status: 400 }
       );
     }
 
-    // Validate username length
-    if (username.length < 3) {
-      return NextResponse.json(
-        { error: "Le nom d'utilisateur doit comporter au moins 3 caractères" },
-        { status: 400 }
-      );
-    }
-
-    // Check if user already exists (email or username)
+    // Check if user already exists (email)
     const existingUser = await Admin.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email }],
     });
 
     if (existingUser) {
@@ -49,9 +41,7 @@ export async function POST(request: NextRequest) {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new user
     const newUser = new Admin({
-      username: username.trim(),
       email,
       password: hashedPassword,
     });
