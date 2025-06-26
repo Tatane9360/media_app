@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Icon from '@/components/Icon';
-import Button from '@/components/Button';
 import { useParams } from 'next/navigation';
-import { Footer, Header } from '@/components';
+
+import { BackButton, Button } from '@components';
 
 interface Article {
     _id: string;
@@ -108,7 +107,6 @@ export default function ArticleDetailPage() {
 
     return (
         <>
-            <Header />
             <main className="min-h-screen bg-[var(--background)] flex flex-col items-center">
  
                 {article.image && (
@@ -127,13 +125,7 @@ export default function ArticleDetailPage() {
 
 
                         <div className="absolute top-6 left-6 z-30 flex items-center gap-4">
-
-                            <Link
-                                href="/blog"
-                                className="bg-[var(--main)] rounded-full p-2 shadow-md flex items-center justify-center hover:bg-[#ff7c4a] transition"
-                            >
-                                <Icon name="arrowLeft" size={20} color="#fff" />
-                            </Link>
+                            <BackButton variant="icon-only" />
                         </div>
                     </div>
                 )}
@@ -184,7 +176,6 @@ export default function ArticleDetailPage() {
                     </div>
                 </section>
             </main>
-            <Footer />
         </>
     );
 }

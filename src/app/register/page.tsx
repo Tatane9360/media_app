@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 export default function Register() {
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -32,6 +33,12 @@ export default function Register() {
       return;
     }
 
+    if (formData.username.length < 3) {
+      setError('Le nom d\'utilisateur doit comporter au moins 3 caractères');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -39,6 +46,7 @@ export default function Register() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          username: formData.username,
           email: formData.email,
           password: formData.password
         }),
@@ -50,7 +58,8 @@ export default function Register() {
         const data = await response.json();
         setError(data.error || 'Échec de l\'inscription');
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Erreur d\'inscription:', err);
       setError('Une erreur est survenue pendant l\'inscription');
     } finally {
       setLoading(false);
@@ -72,6 +81,23 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+              Nom d&apos;utilisateur
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+              minLength={3}
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
+              placeholder="Entrez votre nom d'utilisateur"
+            />
+          </div>
+
           <div>
             <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
               Adresse Email

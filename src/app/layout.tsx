@@ -1,9 +1,10 @@
-import React from 'react';
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
+
 import "./globals.css";
 import "@uiw/react-md-editor/markdown-editor.css";
-import ClientLayout from "@/components/ClientLayout";
+
+import { Navbar, Footer, Header } from "@components";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -12,22 +13,34 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Media App",
+  title: "Media App - Admin Panel",
   description: "Admin panel for media application",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en">
+    <html lang="fr">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#fff" />
+      </head>
       <body
-        className={poppins.variable + " antialiased"}
+        className={`${poppins.variable} antialiased pb-16`}
         suppressHydrationWarning={true}
       >
-        <ClientLayout>{children}</ClientLayout>
+        <Header />
+        <main className="min-h-screen">
+          {children}
+        </main>
+        <Footer />
+        <Navbar />
       </body>
     </html>
   );
 }
-
-
-

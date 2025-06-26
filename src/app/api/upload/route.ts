@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import { verifyToken } from "@/lib/jwt";
+
+import { verifyToken } from "@lib";
 
 export async function POST(request: NextRequest) {
   try {

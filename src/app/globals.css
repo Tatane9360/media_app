@@ -3,25 +3,31 @@
 @theme {
   --color-dark: #171725;
   --color-navy: #34344A;
-  --color-orange: #F36B3D;
+  --color-orange: #F26B3D;
   --color-light: #F6F6F6;
-  
+
   --font-family-sans: var(--font-poppins), system-ui, sans-serif;
+
+  /* Couleurs Tailwind personnalisées */
+  --color-main: var(--main);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 }
 
 :root {
-  --background: #F6F6F6;
-  --foreground: #171725;
-  --main: #F36B3D;
-  --secondary: #34344A;
+  --background: var(--color-light);
+  --foreground: var(--color-dark);
+  --main: var(--color-orange);
+  --secondary: var(--color-navy);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #171725;
-    --foreground: #F6F6F6;
-    --secondary: #34344A;
-    --main: #F36B3D;
+    --background: var(--color-dark);
+    --foreground: var(--color-light);
+    --secondary: var(--color-navy);
+    --main: var(--color-orange);
   }
 }
 
@@ -39,4 +45,39 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Styles pour les h1 */
+h1 {
+  font-family: var(--font-poppins), 'Poppins', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 28px !important;
+  line-height: 38px !important;
+  letter-spacing: 0% !important;
+}
+
+/* Styles pour les h2 */
+h2 {
+  font-family: var(--font-poppins), 'Poppins', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  line-height: 100% !important;
+  letter-spacing: 0% !important;
+}
+
+/* Utilitaires personnalisés */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

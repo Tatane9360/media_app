@@ -21,9 +21,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@models": ["./src/models/index.ts"],
-      "@lib" : ["./src/lib/index.ts"],
       "@components": ["./src/components/index.ts"],
+      "@hooks": ["./src/hooks/index.ts"],
+      "@interface": ["./src/interface/index.ts"],
+      "@lib" : ["./src/lib/index.ts"],
+      "@models": ["./src/models/index.ts"],
+      "@store": ["./src/store/index.ts"],
+      "@utils": ["./src/utils/index.ts"],
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/ArticleList.tsx", "src/components/ArticleEditor.tsx", "src/lib/mongoose.ts"],
