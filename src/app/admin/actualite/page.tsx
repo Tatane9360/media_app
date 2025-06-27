@@ -1,7 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArticleDetail } from '@components';
 import { useArticleStore } from '@store';
 
 interface Article {
@@ -14,24 +13,20 @@ interface Article {
     };
     createdAt?: string;
     published?: boolean;
-    // Add other article properties as needed
 }
 
 export default function ActualitePage() {
     const router = useRouter();
     const { articles, loading, error, fetchArticles, deleteArticle } = useArticleStore();
-    const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
     useEffect(() => {
         fetchArticles(true);
     }, [fetchArticles]);
 
-    // Fonction appelée quand on veut éditer un article
     const handleEditArticle = (article: Article) => {
         router.push(`/admin/actualite/edit?id=${article._id}`);
     };
 
-    // Fonction appelée pour créer un nouvel article
     const handleCreateArticle = () => {
         router.push('/admin/actualite/edit');
     };
@@ -43,11 +38,7 @@ export default function ActualitePage() {
     };
 
     const handleShowDetail = (article: Article) => {
-        setSelectedArticle(article);
-    };
-
-    const handleCloseDetail = () => {
-        setSelectedArticle(null);
+        router.push(`/blog/${article._id}`);
     };
 
     const truncateMarkdown = (markdown: string, maxLength = 100) => {
@@ -56,7 +47,6 @@ export default function ActualitePage() {
         return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
     };
 
-    // Format date pour afficher comme "12/04/23"
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().substring(2)}`;
@@ -65,7 +55,6 @@ export default function ActualitePage() {
     return (
         <div className="min-h-screen bg-[#1F1F2C]">
             <main className="px-4 py-6 pb-24">
-                {/* En-tête avec titre et bouton ajouter */}
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-white text-2xl font-bold">ACTUALITÉ</h1>
                     <button
@@ -80,7 +69,6 @@ export default function ActualitePage() {
                     </button>
                 </div>
 
-                {/* Liste des articles */}
                 <div className="space-y-4">
                     {loading && articles.length === 0 ? (
                         <div className="text-center py-8 text-white">Chargement des articles...</div>
@@ -132,13 +120,7 @@ export default function ActualitePage() {
                 </div>
             </main>
 
-            {/* Détail d'article */}
-            {selectedArticle && (
-                <ArticleDetail
-                    article={selectedArticle as any}
-                    onClose={handleCloseDetail}
-                />
-            )}
+
         </div>
     );
 }
