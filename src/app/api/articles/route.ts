@@ -12,15 +12,13 @@ export async function GET(request: NextRequest) {
 
     console.log(`API: Fetching articles from database (admin mode: ${isAdmin})`);
 
-    const allArticles = await Article.find({}).populate("author", "email");
-    console.log(`API: Total articles in DB: ${allArticles.length}`);
-
     if (isAdmin) {
+      const allArticles = await Article.find({}).populate("author", "email").select("title content description image published author createdAt updatedAt");
       console.log(`API: Admin mode - returning all ${allArticles.length} articles`);
       return NextResponse.json({ articles: allArticles });
     }
 
-    const publishedArticles = await Article.find({ published: true }).populate("author", "email").sort({ createdAt: -1 });
+    const publishedArticles = await Article.find({ published: true }).populate("author", "email").select("title content description image published author createdAt updatedAt").sort({ createdAt: -1 });
     console.log(`API: Public mode - returning ${publishedArticles.length} published articles`);
 
     return NextResponse.json({ articles: publishedArticles });
@@ -50,11 +48,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('API: Received article data:', body);
 
-    const { title, content, image, published } = body;
+    const { title, content, description, image, published } = body;
 
-    if (!title || !content) {
+    if (!title || !content || !description) {
       console.log('API: Missing required fields');
-      return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
+      return NextResponse.json({ error: "Title, content and description are required" }, { status: 400 });
     }
 
     const isPublished = published === true || published === 'true';
@@ -63,6 +61,7 @@ export async function POST(request: NextRequest) {
     const article = new Article({
       title,
       content,
+      description,
       image,
       published: isPublished,
       author: (decoded as any).id,

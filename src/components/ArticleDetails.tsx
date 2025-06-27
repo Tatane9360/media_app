@@ -1,6 +1,5 @@
 'use client';
-// components/ArticleDetail.jsx
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
 interface Article {
@@ -24,7 +23,6 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
     const modalRef = useRef(null);
 
     useEffect(() => {
-        // Animation d'ouverture
         if (overlayRef.current && modalRef.current) {
             gsap.fromTo(overlayRef.current,
                 { opacity: 0 },
@@ -48,7 +46,6 @@ export default function ArticleDetail({ article, onClose }: ArticleDetailProps) 
     }, []);
 
     const handleClose = () => {
-        // Animation de fermeture
         if (overlayRef.current && modalRef.current) {
             gsap.to(modalRef.current, {
                 scale: 0.8,

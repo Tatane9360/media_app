@@ -11,6 +11,12 @@ const ArticleSchema = new mongoose.Schema(
       type: String,
       required: [true, "Content is required"],
     },
+    description: {
+      type: String,
+      required: [true, "Description is required"],
+      trim: true,
+      maxlength: [500, "Description cannot exceed 500 characters"],
+    },
     image: {
       type: String,
       required: false,

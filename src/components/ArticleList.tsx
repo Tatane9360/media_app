@@ -94,7 +94,7 @@ export default function ArticleList() {
                 src={article.image}
                 alt={article.title}
                 className="w-24 h-24 object-cover rounded-md ml-4"
-                onClick={e => e.stopPropagation()} // Pour éviter d'ouvrir le détail au clic sur l'image
+                onClick={e => e.stopPropagation()}
               />
             )}            </div>
           <div className="text-black mb-4">
@@ -124,7 +124,7 @@ export default function ArticleList() {
         ))}
       </div>      {articles.length === 0 && !loading && (
         <div className="text-center py-12 text-black">
-          No articles found. Create your first article!
+          Aucun article trouvé. Créez votre premier article !
         </div>
       )}
 

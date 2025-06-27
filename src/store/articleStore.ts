@@ -4,6 +4,7 @@ interface Article {
   _id: string;
   title: string;
   content: string;
+  description?: string;
   image?: string;
   published: boolean;
   author: {

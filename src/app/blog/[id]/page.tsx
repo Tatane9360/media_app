@@ -21,9 +21,7 @@ interface Article {
     updatedAt: string;
 }
 
-// Supprimez l'interface et la dépendance aux props
 export default function ArticleDetailPage() {
-    // Utilisez useParams() à la place de props.params
     const params = useParams();
     const id = params.id as string;
 
@@ -31,11 +29,17 @@ export default function ArticleDetailPage() {
     const [recentArticles, setRecentArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [scrollY, setScrollY] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => setScrollY(window.scrollY);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         const fetchArticle = async () => {
             try {
-                // Utilisez l'ID obtenu via useParams
                 const response = await fetch(`/api/articles/${id}`);
                 const data = await response.json();
 
@@ -57,10 +61,8 @@ export default function ArticleDetailPage() {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Filtrer l'article actuel s'il existe dans les résultats
                     const filteredArticles = data.articles.filter((a: Article) => a._id !== id);
-                    // Prendre les 3 premiers articles
-                    setRecentArticles(filteredArticles.slice(0, 3));
+                    setRecentArticles(filteredArticles.slice(0, 2));
                 }
             } catch (err) {
                 console.error("Erreur lors du chargement des articles récents", err);
@@ -69,16 +71,32 @@ export default function ArticleDetailPage() {
 
         fetchArticle();
         fetchRecentArticles();
-    }, [id]); // Utilisez id comme dépendance au lieu de params.id
+    }, [id]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear().toString().substring(2)}`;
     };
 
-    // Fonction pour tronquer le titre s'il est trop long
-    const truncateTitle = (title: string, maxLength: number = 25) => {
-        return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: article?.title,
+                    text: `Découvrez cet article : ${article?.title}`,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.log('Erreur lors du partage:', error);
+            }
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Lien copié dans le presse-papiers !');
+        }
+    };
+
+    const handleWatchVideo = () => {
+        console.log('Voir la vidéo de l\'article:', article?.title);
     };
 
     if (loading) {
@@ -105,10 +123,11 @@ export default function ArticleDetailPage() {
         );
     }
 
+    const parallaxOffset = Math.min(scrollY * 0.8, 150);
+
     return (
         <>
-            <main className="min-h-screen bg-[var(--background)] flex flex-col items-center">
- 
+            <main className="min-h-screen bg-[var(--background)] flex flex-col">
                 {article.image && (
                     <div className="w-full relative">
                         <div className="absolute top-0 left-0 w-full h-[220px] sm:h-[260px] bg-[var(--secondary)] rounded-b-[32px] z-10" />
@@ -123,47 +142,81 @@ export default function ArticleDetailPage() {
                             <div className="absolute inset-0 bg-black/30" />
                         </div>
 
-
                         <div className="absolute top-6 left-6 z-30 flex items-center gap-4">
                             <BackButton variant="icon-only" />
                         </div>
                     </div>
                 )}
 
-          
-                <div className="relative z-30 w-[100vw] mx-auto -mt-14 pb-8">
-                    <article className="bg-[var(--background)] rounded-3xl shadow-lg px-6 py-8 text-[var(--foreground)]">
-                        <header className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                            <h1 className="text-2xl font-bold uppercase tracking-wide">{article.title}</h1>
-                            <span className="text-xs opacity-70 mt-1 sm:mt-0">{formatDate(article.createdAt)}</span>
+                {!article.image && (
+                    <div className="w-full pt-6 px-6">
+                        <BackButton variant="icon-only" />
+                    </div>
+                )}
+
+                <div 
+                    className="relative z-30 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-14 pb-8"
+                    style={{
+                        transform: article.image ? `translateY(-${parallaxOffset}px)` : 'none',
+                        transition: 'transform 0.1s ease-out'
+                    }}
+                >
+                    <article className="bg-[var(--background)] rounded-3xl shadow-lg px-4 sm:px-6 py-6 sm:py-8 text-[var(--foreground)]">
+                        <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                            <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-wide break-words">{article.title}</h1>
+                            <span className="text-xs opacity-70 mt-2 sm:mt-0 flex-shrink-0">{formatDate(article.createdAt)}</span>
                         </header>
                         <div
-                            className="text-[var(--foreground)] text-base leading-relaxed opacity-90 mb-4"
+                            className="text-[var(--foreground)] text-sm sm:text-base leading-relaxed opacity-90 mb-6 break-words overflow-wrap-anywhere"
                             style={{ whiteSpace: 'pre-line' }}
                         >
                             {article.content}
                         </div>
+                        
+                        <div className="flex justify-center gap-4 mb-6">
+                            <Button 
+                                variant="primary" 
+                                size="md" 
+                                icon="share" 
+                                iconPosition="left"
+                                onClick={handleShare}
+                            >
+                                PARTAGER
+                            </Button>
+                            <Button 
+                                variant="secondary" 
+                                size="md" 
+                                icon="eye" 
+                                iconPosition="left"
+                                onClick={handleWatchVideo}
+                            >
+                                VOIR LA VIDÉO
+                            </Button>
+                        </div>
                     </article>
                 </div>
 
-         
-                <section className="w-full max-w-md mx-auto px-6 mb-8">
-                    <h2 className="text-[var(--foreground)] text-base font-semibold mb-3">DÉCOUVREZ AUSSI</h2>
-                    <div className="flex gap-3">
+                <section className="w-full px-4 sm:px-6 lg:px-8 mb-8">
+                    <h2 className="text-[var(--foreground)] text-base font-semibold mb-6 px-2">DÉCOUVRE AUSSI</h2>
+                    <div className="flex gap-4 px-2">
                         {recentArticles.length > 0 ? (
                             recentArticles.map((recentArticle) => (
                                 <Link href={`/blog/${recentArticle._id}`} key={recentArticle._id} className="flex-1 group">
-                                    <div className="rounded-xl overflow-hidden shadow bg-[var(--navy)] transition group-hover:scale-105">
-                                        <div className="w-full h-[80px] relative">
+                                    <div className="relative rounded-xl overflow-hidden shadow-lg bg-[var(--navy)] transition group-hover:scale-105">
+                                        <div className="w-full h-[180px] relative">
                                             <Image
                                                 src={recentArticle.image || "/placeholder-image.jpg"}
                                                 alt={recentArticle.title}
                                                 fill
                                                 className="object-cover"
                                             />
-                                        </div>
-                                        <div className="p-2 text-xs text-[var(--foreground)]">
-                                            {truncateTitle(recentArticle.title.toUpperCase())}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                                            
+                                            <div className="absolute bottom-3 left-3 right-3">
+                                                <h3 className="text-white text-sm font-bold uppercase leading-tight">
+                                                    {recentArticle.title}
+                                                </h3>
+                                            </div>
                                         </div>
                                     </div>
                                 </Link>

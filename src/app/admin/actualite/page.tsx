@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Header, ArticleEditor, ArticleDetail } from '@components';
+import { useRouter } from 'next/navigation';
+import { ArticleDetail } from '@components';
 import { useArticleStore } from '@store';
 
 interface Article {
@@ -17,9 +18,8 @@ interface Article {
 }
 
 export default function ActualitePage() {
+    const router = useRouter();
     const { articles, loading, error, fetchArticles, deleteArticle } = useArticleStore();
-    const [showEditor, setShowEditor] = useState(false);
-    const [editingArticle, setEditingArticle] = useState<Article | null>(null);
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
     useEffect(() => {
@@ -28,14 +28,12 @@ export default function ActualitePage() {
 
     // Fonction appelée quand on veut éditer un article
     const handleEditArticle = (article: Article) => {
-        setEditingArticle(article);
-        setShowEditor(true);
+        router.push(`/admin/actualite/edit?id=${article._id}`);
     };
 
-    // Fonction appelée à la fermeture de l'éditeur
-    const handleCloseEditor = () => {
-        setShowEditor(false);
-        setEditingArticle(null);
+    // Fonction appelée pour créer un nouvel article
+    const handleCreateArticle = () => {
+        router.push('/admin/actualite/edit');
     };
 
     const handleDelete = async (id: string) => {
@@ -71,7 +69,7 @@ export default function ActualitePage() {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-white text-2xl font-bold">ACTUALITÉ</h1>
                     <button
-                        onClick={() => setShowEditor(true)}
+                        onClick={handleCreateArticle}
                         className="bg-[#E94E1B] text-white w-10 h-10 rounded-full flex items-center justify-center"
                         aria-label="Ajouter un article"
                     >
@@ -134,18 +132,10 @@ export default function ActualitePage() {
                 </div>
             </main>
 
-            {/* Éditeur d'article */}
-            {showEditor && (
-                <ArticleEditor
-                    article={editingArticle}
-                    onClose={handleCloseEditor}
-                />
-            )}
-
             {/* Détail d'article */}
             {selectedArticle && (
                 <ArticleDetail
-                    article={selectedArticle}
+                    article={selectedArticle as any}
                     onClose={handleCloseDetail}
                 />
             )}

@@ -44,11 +44,11 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { title, content, image, published } = await request.json();
+    const { title, content, description, image, published } = await request.json();
 
     const article = await Article.findByIdAndUpdate(
       params.id,
-      { title, content, image, published },
+      { title, content, description, image, published },
       { new: true }
     ).populate("author", "email");
 
