@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { VideoUpload } from '@components';
+import { BackButton, VideoUpload, Button } from '@components';
 
 export default function NewProject() {
   const router = useRouter();
@@ -13,11 +13,15 @@ export default function NewProject() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showVideoUpload, setShowVideoUpload] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    if (name === 'description' && value.length > 1200) {
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -51,12 +55,9 @@ export default function NewProject() {
       
       const data = await response.json();
       
-      // Stocker l'ID du projet créé et afficher l'upload de vidéos
       setCreatedProjectId(data.project._id);
-      setShowVideoUpload(true);
       
-      // Ne pas rediriger immédiatement pour permettre l'upload de vidéos
-      // router.push(`/project/${data.project._id}`);
+      router.push(`/project/${data.project._id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
@@ -64,18 +65,17 @@ export default function NewProject() {
     }
   };
 
+  const handleSubmitClick = () => {
+    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    handleSubmit(fakeEvent);
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className='mt-6'>
+      <div className="max-w-2xl mx-auto flex flex-col gap-10">
+        <div className='flex flex-col gap-4'>
+          <BackButton variant='icon-only' />
           <h1 className="text-3xl font-bold">Nouveau Projet</h1>
-          
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-500 text-white px-4 py-2 rounded"
-          >
-            Retour
-          </button>
         </div>
         
         {error && (
@@ -84,15 +84,16 @@ export default function NewProject() {
             <span className="block sm:inline"> {error}</span>
           </div>
         )}
-        
-        {!showVideoUpload ? (
-          <form onSubmit={handleSubmit} className="bg-white shadow-md rounded-lg p-6">
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="title">
-                Titre *
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="title">
+                <h2>
+                  Titre*
+                </h2>
               </label>
               <input
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="appearance-none rounded-xl w-full p-4 bg-foreground text-secondary leading-tight focus:outline-none focus:shadow-outline"
                 id="title"
                 type="text"
                 name="title"
@@ -103,57 +104,56 @@ export default function NewProject() {
               />
             </div>
             
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="description">
-                Description
+            <div className="flex flex-col gap-2">
+              <label className='flex justify-between' htmlFor="description">
+                <h2>
+                  Description
+                </h2>
+                <div className="flex justify-end mt-1">
+                  <span className={`text-xs ${
+                    formData.description.length > 1100 
+                      ? 'text-red-500' 
+                      : 'text-foreground'
+                  }`}>
+                    {formData.description.length}/1200
+                  </span>
+                </div>
               </label>
-              <textarea
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Description du projet"
-                rows={4}
-              />
+              <div className="relative">
+                <textarea
+                  className="appearance-none rounded-xl w-full p-4 bg-foreground text-secondary leading-tight focus:outline-none focus:shadow-outline"
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Description du projet"
+                  rows={4}
+                  maxLength={1200}
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center justify-end">
-              <button
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? 'Création en cours...' : 'Créer le projet'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              <strong className="font-bold">Projet créé avec succès!</strong>
-              <p className="mt-2">Vous pouvez maintenant ajouter des vidéos à votre projet.</p>
-            </div>
-            
+
             <VideoUpload projectId={createdProjectId} />
             
-            <div className="flex justify-between items-center mt-4">
-              <button
+            <div className="flex justify-between gap-4">
+              <Button
+                variant="primary"
+                onClick={handleSubmitClick}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Création en cours...' : 'Enregistrer'}
+              </Button>
+              <Button
+                variant="white"
                 onClick={() => router.push('/projects')}
-                className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+                disabled={loading}
+                className="w-full"
               >
-                Voir tous les projets
-              </button>
-              
-              <button
-                onClick={() => createdProjectId && router.push(`/project/${createdProjectId}`)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Aller à l'éditeur de projet
-              </button>
+                Annuler
+              </Button>
             </div>
-          </div>
-        )}
+          </form>
       </div>
     </div>
   );

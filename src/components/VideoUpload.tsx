@@ -120,9 +120,7 @@ export default function VideoUpload({ projectId = null }: { projectId?: string |
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
-      <h2 className="text-xl font-bold mb-4">Upload de Vidéos</h2>
-      
+    <div className="bg-foreground rounded-xl p-4 flex flex-col justify-between h-52">
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <strong className="font-bold">Erreur:</strong>
@@ -137,44 +135,67 @@ export default function VideoUpload({ projectId = null }: { projectId?: string |
         </div>
       )}
       
-      <div className="mb-4">
-        <label className="block text-gray-700 text-sm font-bold mb-2">
-          Sélectionner des fichiers vidéo
-        </label>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="video/*"
-          multiple
-          onChange={handleFileChange}
-          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          disabled={uploading}
-        />
-      </div>
-      
-      {selectedFiles.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-sm font-bold mb-2">Fichiers sélectionnés:</h3>
-          <ul className="space-y-2">
-            {selectedFiles.map((file, index) => (
-              <li key={index} className="text-sm">
-                <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3">
+        <h2 className="text-background">
+          Sélectionner des fichiers
+        </h2>
+        <div className="relative">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            multiple
+            onChange={handleFileChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={uploading}
+          />
+          <button
+            type="button"
+            className="bg-secondary text-foreground px-4 py-2 rounded-md font-medium hover:bg-secondary/90 transition-colors"
+            disabled={uploading}
+          >
+            Sélectionner des fichiers
+          </button>
+        </div>
+        
+        <div className="text-background text-sm">
+          {selectedFiles.length === 0 ? (
+            <p>Aucun fichier</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="flex justify-between items-center">
                   <span className="truncate">{file.name}</span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-background/70">
                     {(file.size / (1024 * 1024)).toFixed(2)} MB
                   </span>
                 </div>
-                {uploadProgress[file.name] > 0 && (
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
-                      style={{ width: `${uploadProgress[file.name]}%` }}
-                    ></div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {selectedFiles.length > 0 && uploadProgress && Object.keys(uploadProgress).length > 0 && (
+        <div className="mb-4">
+          <div className="space-y-2">
+            {selectedFiles.map((file, index) => (
+              uploadProgress[file.name] > 0 && (
+                <div key={index} className="text-background">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="truncate">{file.name}</span>
+                    <span>{uploadProgress[file.name]}%</span>
                   </div>
-                )}
-              </li>
+                  <div className="w-full bg-background/20 rounded-full h-2">
+                    <div 
+                      className="bg-main h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${uploadProgress[file.name]}%` }}
+                    />
+                  </div>
+                </div>
+              )
             ))}
-          </ul>
+          </div>
         </div>
       )}
       
@@ -182,13 +203,13 @@ export default function VideoUpload({ projectId = null }: { projectId?: string |
         <button
           onClick={handleUpload}
           disabled={uploading || selectedFiles.length === 0}
-          className={`px-4 py-2 rounded font-bold ${
+          className={`px-7 py-2 rounded font-bold ${
             uploading || selectedFiles.length === 0
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-700 text-white'
+              : 'bg-main hover:bg-main/90 text-foreground'
           }`}
         >
-          {uploading ? 'Upload en cours...' : 'Uploader'}
+          {uploading ? 'import en cours...' : 'IMPORTER'}
         </button>
       </div>
     </div>
