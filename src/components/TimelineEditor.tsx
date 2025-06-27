@@ -10,6 +10,7 @@ import { AudioTrackComponent } from './AudioTrackComponent';
 import { OptimizedImage } from './OptimizedImage';
 
 import { CutToolHandler, CutToolCallbacks, CutToolButton, CutToolUI } from '@utils';
+import Icon from './Icon';
 
 interface TimelineEditorProps {
   timeline: Timeline;
@@ -1572,7 +1573,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">
       {/* Prévisualisation vidéo */}
-      <div className="w-full bg-black aspect-video relative">
+      <div className="w-full bg-black aspect-video relative group">
         <VideoPreview
           clips={timeline.clips}
           audioTracks={timeline.audioTracks}
@@ -1584,9 +1585,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         />
         
         {/* Contrôles de lecture */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 flex flex-col z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-foreground/75 p-2 flex flex-col z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           {/* Curseur de temps */}
-          <div className="w-full mb-2 px-2">
+          <div className="w-full mb-2 relative">
             <input
               type="range"
               min={0}
@@ -1594,53 +1595,49 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               step={0.01}
               value={currentTime}
               onChange={(e) => setCurrentTime(parseFloat(e.target.value))}
-              className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-red-500"
+              className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-main relative z-10"
+              style={{
+              background: `linear-gradient(to right, #F26B3D 0%, #F26B3D ${(currentTime / timeline.duration) * 100}%, #171725 ${(currentTime / timeline.duration) * 100}%, #171725 100%)`
+              }}
             />
           </div>
           
           {/* Boutons de contrôle */}
-          <div className="flex items-center">
-            <button 
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 5))}
-              className="bg-gray-700 text-white rounded px-2 py-1 mr-2 text-xs"
-              title="Reculer de 5 secondes"
-            >
-              -5s
-            </button>
-            
-            <button 
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 1))}
-              className="bg-gray-700 text-white rounded px-2 py-1 mr-2 text-xs"
-              title="Reculer d'une seconde"
-            >
-              -1s
-            </button>
-            
-            <button 
-              onClick={togglePlayback}
-              className="bg-white text-black rounded-full w-8 h-8 flex items-center justify-center mx-2"
-            >
-              {playing ? '❚❚' : '▶'}
-            </button>
-            
-            <button 
-              onClick={() => setCurrentTime(Math.min(timeline.duration, currentTime + 1))}
-              className="bg-gray-700 text-white rounded px-2 py-1 ml-2 text-xs"
-              title="Avancer d'une seconde"
-            >
-              +1s
-            </button>
-            
-            <button 
-              onClick={() => setCurrentTime(Math.min(timeline.duration, currentTime + 5))}
-              className="bg-gray-700 text-white rounded px-2 py-1 ml-2 text-xs"
-              title="Avancer de 5 secondes"
-            >
-              +5s
-            </button>
-            
-            <div className="text-white ml-4">
+          <div className="flex items-center justify-between text-background">
+            <div className="w-28">
               {formatTime(currentTime)} / {formatTime(timeline.duration)}
+            </div>
+              
+            <div className="flex items-center gap-3">
+              <div
+                onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
+                title='Reculer de 10 secondes'
+                className='cursor-pointer'
+              >
+                <Icon name="-10" />
+              </div>
+
+              <button 
+                onClick={togglePlayback}
+                className="cursor-pointer text-2xl"
+              >
+                {playing ? '❚❚' : '▶'}
+              </button>
+
+              <div
+                onClick={() => setCurrentTime(Math.max(0, currentTime + 10))}
+                title='Avancer de 10 secondes'
+                className="cursor-pointer"
+              >
+                <Icon name="+10" />
+              </div>
+            </div>
+
+            <div 
+              className="cursor-pointer w-28 flex justify-end" 
+              // onClick={() => setIsFullscreen(!isFullscreen)}
+            >
+              <Icon name="fullscreen" />
             </div>
           </div>
         </div>
@@ -1654,14 +1651,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             onClick={() => setScale(Math.max(50, scale - 10))}
             className="px-2 py-1 bg-gray-700 rounded"
           >
-            -
+            <Icon name="less" size={24} />
           </button>
           <span className="mx-2">{scale}%</span>
           <button 
             onClick={() => setScale(Math.min(200, scale + 10))}
             className="px-2 py-1 bg-gray-700 rounded"
           >
-            +
+            <Icon name="add" size={24} />
           </button>
         </div>
         

@@ -1092,21 +1092,14 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             <div className="text-white text-center">
               {loadingState === LoadingState.LOADING && "Chargement de la vidéo..."}
               {loadingState === LoadingState.BUFFERING && "Mise en mémoire tampon..."}
-              <div className="w-48 h-2 bg-gray-700 rounded-full mt-2 overflow-hidden">
+              <div className="w-48 h-2 bg-background rounded-full mt-2 overflow-hidden">
                 <div 
-                  className="h-full bg-blue-500 transition-all duration-300 ease-out" 
+                  className="h-full bg-main transition-all duration-300 ease-out" 
                   style={{ width: `${bufferingProgress}%` }}
                 ></div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Détails du clip pour debugging (à enlever en production) */}
-      {process.env.NODE_ENV === 'development' && activeClip && (
-        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs p-1 rounded">
-          Clip: {activeClip.id} | {Math.round(currentTime * 100) / 100}s
         </div>
       )}
     </div>
