@@ -161,7 +161,10 @@ async function renderVideoAsync(
 
     // Mettre à jour le projet avec l'URL publiée
     project.publishedUrl = url;
-    project.thumbnailUrl = thumbnailUrl || project.thumbnailUrl;
+    
+    if (!project.thumbnailUrl && thumbnailUrl) {
+      project.thumbnailUrl = thumbnailUrl;
+    }
     project.status = "completed";
     project.renderProgress = 100;
     await project.save();
