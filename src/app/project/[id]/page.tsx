@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-import { TimelineEditor, VideoUpload } from '@components';
+import { BackButton, Button, Icon, TimelineEditor, VideoUpload } from '@components';
 import { Project, Timeline, VideoAsset, Clip } from '@interface';
 
 export default function ProjectEdit() {
@@ -190,42 +190,32 @@ export default function ProjectEdit() {
   }
   
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">
-          Édition: {project.title}
-        </h1>
-        
-        <div className="flex space-x-4">
-          {saving && (
-            <span className="text-gray-500">Sauvegarde en cours...</span>
-          )}
-          
-          <button
-            onClick={() => setShowUploadModal(!showUploadModal)}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Ajouter des vidéos
-          </button>
-          
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-500 text-white px-4 py-2 rounded"
-          >
-            Retour
-          </button>
-          
-          <button
-            onClick={handleRenderVideo}
-            className="bg-green-600 text-white px-4 py-2 rounded"
-            disabled={loading || project.timeline.clips.length === 0}
-          >
-            Générer la vidéo
-          </button>
+    <div className="flex flex-col gap-6">
+      <BackButton variant="icon-only" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className='flex items-center justify-between w-full md:w-auto gap-4'>
+          <div className='flex flex-col md:flex-row w-full truncate'>
+            <h1>Édition: </h1>
+            <h1 className="truncate overflow-hidden whitespace-nowrap">
+              {project.title}
+            </h1>
+          </div>
+
+          <Icon
+            name="edit"
+            className="h-5 w-5 text-foreground"
+          />
         </div>
+        
+        <Button
+          onClick={handleRenderVideo}
+          disabled={loading || project.timeline.clips.length === 0}
+        >
+          Générer la vidéo
+        </Button>
       </div>
       
-      <div className="bg-gray-100 rounded-lg overflow-hidden">
+      <div className="bg-secondary rounded-lg overflow-hidden">
         {/* Éditeur de timeline */}
         <TimelineEditor
           timeline={project.timeline}
