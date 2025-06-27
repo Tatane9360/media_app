@@ -13,7 +13,7 @@ export async function GET(
   try {
     await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
 
     // Récupérer le projet avec ses détails complets
     const project = (await Project.findById(id)
