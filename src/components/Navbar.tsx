@@ -17,9 +17,21 @@ const Navbar = () => {
   }, [pathname, checkAuth]);
 
   const isActive = (path: string) => {
-    const active = path === '/' ? pathname === '/' : pathname?.startsWith(path);
-    console.log(`Checking ${path} against ${pathname}: ${active}`);
-    return active;
+    if (path === '/') {
+      return pathname === '/';
+    }
+    
+    if (path === '/projects') {
+      return pathname?.startsWith('/projects') || 
+             pathname?.includes('project') || 
+             (isAuthenticated && pathname?.startsWith('/videos'));
+    }
+    
+    if (path === '/videos') {
+      return pathname?.startsWith('/videos');
+    }
+    
+    return pathname === path;
   };
 
   // Détermine le lien vidéos selon l'état de connexion
@@ -34,6 +46,11 @@ const Navbar = () => {
     return isAuthenticated ? '/admin' : '/';
   };
 
+  const getBlogLink = () => {
+    if (loading) return '/blog';
+    return isAuthenticated ? '/admin/actualite' : '/blog';
+  };
+  
   const handleLogout = async () => {
     await logout();
     router.push('/');
@@ -41,6 +58,7 @@ const Navbar = () => {
 
   const videosPath = getVideosLink();
   const homePath = getHomeLink();
+  const blogPath = getBlogLink();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-fit w-[100dvw] px-4 py-6 bg-navy flex items-center justify-around z-50">
@@ -55,33 +73,33 @@ const Navbar = () => {
 
       {isAuthenticated && (
         <>
-          <Link href="/admin" className="flex flex-col items-center gap-0.5">
+          <Link href="/admin/featured" className="flex flex-col items-center gap-0.5">
             <Icon 
               name="bento"
               size={28} 
-              color={isActive('/admin') ? '#F26B3D' : '#F6F6F6'} 
+              color={isActive('/admin/featured') ? '#F26B3D' : '#F6F6F6'} 
             />
-            <span className="text-xs" style={{ color: isActive('/admin') ? '#F26B3D' : '#F6F6F6' }}>À la une</span>
+            <span className="text-xs" style={{ color: isActive('/admin/featured') ? '#F26B3D' : '#F6F6F6' }}>À la une</span>
           </Link>
         </>
       )}
 
-      <Link href="/blog" className="flex flex-col items-center gap-0.5">
+      <Link href={blogPath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="document" 
           size={28} 
-          color={isActive('/blog') ? '#F26B3D' : '#F6F6F6'} 
+          color={isActive(blogPath) ? '#F26B3D' : '#F6F6F6'} 
         />
-        <span className="text-xs" style={{ color: isActive('/blog') ? '#F26B3D' : '#F6F6F6' }}>actualité</span>
+        <span className="text-xs" style={{ color: isActive(blogPath) ? '#F26B3D' : '#F6F6F6' }}>actualité</span>
       </Link>
       
       <Link href={videosPath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="youtube" 
           size={28} 
-          color={isActive(videosPath) || pathname?.includes('project') ? '#F26B3D' : '#F6F6F6'} 
+          color={isActive(videosPath) ? '#F26B3D' : '#F6F6F6'} 
         />
-        <span className="text-xs" style={{ color: isActive(videosPath) || pathname?.includes('project') ? '#F26B3D' : '#F6F6F6' }}>
+        <span className="text-xs" style={{ color: isActive(videosPath) ? '#F26B3D' : '#F6F6F6' }}>
           {isAuthenticated ? 'Projets' : 'Vidéos'}
         </span>
       </Link>

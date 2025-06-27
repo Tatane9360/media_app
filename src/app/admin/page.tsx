@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth, useAdminStats } from "@/hooks";
-import { Button, Icon } from "@/components";
+import { useAuth, useAdminStats } from "@hooks";
+import { Button, Icon } from "@components";
 
 interface Stats {
   videos: number;

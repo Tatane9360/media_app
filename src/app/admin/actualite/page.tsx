@@ -1,9 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Header } from '@/components';
-import ArticleEditor from '@/components/ArticleEditor';
-import { useArticleStore } from '@/store/articleStore';
-import ArticleDetail from '@/components/ArticleDetails';
+import { Header, ArticleEditor, ArticleDetail } from '@components';
+import { useArticleStore } from '@store';
 
 interface Article {
     _id?: string;
@@ -68,8 +66,6 @@ export default function ActualitePage() {
 
     return (
         <div className="min-h-screen bg-[#1F1F2C]">
-            <Header />
-
             <main className="px-4 py-6 pb-24">
                 {/* En-tête avec titre et bouton ajouter */}
                 <div className="flex justify-between items-center mb-8">

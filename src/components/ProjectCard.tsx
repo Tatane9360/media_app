@@ -1,7 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BackButton } from '@/components';
+
+import { BackButton } from '@components';
 
 interface Project {
   _id: string;

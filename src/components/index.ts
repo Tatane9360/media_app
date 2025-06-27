@@ -8,7 +8,7 @@ export { default as VideoCard } from "./VideoCard";
 export { default as ProjectCard } from "./ProjectCard";
 export * from "./OptimizedImage";
 export { default as BackButton } from "./BackButton";
-export { default as ArticleDetails } from "./ArticleDetails";
+export { default as ArticleDetail } from "./ArticleDetails";
 export { default as ArticleEditor } from "./ArticleEditor";
 export { default as ArticleList } from "./ArticleList";
 export { default as Icon } from "./Icon";

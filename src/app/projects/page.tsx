@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { VideoCard, ProjectCard, Button } from '@/components';
-import { useVideosData, useProjectsData } from '@/hooks';
+import { VideoCard, ProjectCard, Button } from '@components';
+import { useVideosData, useProjectsData } from '@hooks';
 
 interface Project {
   _id: string;

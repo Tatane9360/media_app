@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Header } from '@/components';
+import { Header } from '@components';
 
 interface FeaturedContent {
     _id?: string;
@@ -115,7 +115,6 @@ export default function ALaUnePage() {
 
     return (
         <div className="min-h-screen bg-[#1F1F2C]">
-            <Header />
 
             <main className="px-6 py-6 pb-20">
                 {/* Exactement comme sur la maquette */}

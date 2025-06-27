@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { BackButton, Button } from '@components';
-import { useAuth } from '@/hooks';
+import { useAuth } from '@hooks';
 
 function LoginForm() {
   const [formData, setFormData] = useState({
