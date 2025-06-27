@@ -4,6 +4,9 @@ import { getServerSession } from "next-auth/next";
 import { authOptions, connectDB, extractVideoMetadata, uploadToCloudStorage } from "@lib";
 import { VideoAsset } from "@models";
 
+// Forcer l'utilisation du Node.js runtime pour supporter les modules Node.js
+export const runtime = "nodejs";
+
 export const config = {
   api: {
     bodyParser: false,
@@ -100,10 +103,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erreur lors du téléchargement de la vidéo:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Erreur inconnue";
     return NextResponse.json(
-      { error: `Erreur lors du téléchargement: ${error.message}` },
+      { error: `Erreur lors du téléchargement: ${errorMessage}` },
       { status: 500 }
     );
   }
