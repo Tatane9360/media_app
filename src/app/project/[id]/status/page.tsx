@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 import { Project } from '@interface';
+import { Button } from '@components';
 
 export default function RenderStatus() {
   const router = useRouter();
@@ -35,23 +36,10 @@ export default function RenderStatus() {
 
     fetchProject();
 
-    // Polling pour mettre à jour le statut toutes les 3 secondes
     const interval = setInterval(fetchProject, 3000);
 
     return () => clearInterval(interval);
   }, [projectId]);
-
-  // Rediriger vers les vidéos quand le rendu est terminé
-  useEffect(() => {
-    if (project?.status === 'completed' && project.publishedUrl) {
-      // Redirection automatique après 2 secondes
-      const timer = setTimeout(() => {
-        router.push('/videos');
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [project, router]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,38 +88,33 @@ export default function RenderStatus() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div className="min-h-screen">
+      <div className="max-w-2xl mx-auto">
+        <div>
           {/* En-tête */}
           <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-foreground">
               Génération de la vidéo
             </h1>
-            <p className="text-gray-600">{project.title}</p>
           </div>
 
           {/* Statut */}
-          <div className="p-6">
-            <div className="text-center">
-              {/* Statut actuel */}
-              <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium mb-6 ${getStatusColor(project.status)}`}>
-                {project.status === 'rendering' && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                )}
+          <div className="flex flex-col items-center justify-center gap-10">
+            <div className="w-full items-center gap-10">
+              <h2>
                 {getStatusText(project.status)}
-              </div>
+              </h2>
 
               {/* Barre de progression */}
               {project.status === 'rendering' && (
-                <div className="mb-6">
-                  <div className="bg-gray-200 rounded-full h-3 mb-2">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-foreground rounded-full h-4">
                     <div 
-                      className="bg-blue-600 h-3 rounded-full transition-all duration-300 ease-out"
+                      className="bg-main h-3 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${project.renderProgress || 0}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-foreground">
                     Progression : {project.renderProgress || 0}%
                   </p>
                 </div>
@@ -139,11 +122,11 @@ export default function RenderStatus() {
 
               {/* Messages selon le statut */}
               {project.status === 'rendering' && (
-                <div className="text-center mb-6">
-                  <p className="text-gray-600 mb-2">
+                <div className="flex flex-col gap-2 text-center">
+                  <p className="text-foreground">
                     Votre vidéo est en cours de génération...
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-foreground italic">
                     Cela peut prendre quelques minutes selon la complexité de votre projet.
                   </p>
                 </div>
@@ -152,18 +135,15 @@ export default function RenderStatus() {
               {project.status === 'completed' && (
                 <div className="text-center mb-6">
                   <div className="mb-4">
-                    <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="mx-auto h-16 w-16 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Vidéo générée avec succès !
                   </h3>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-foreground mb-4">
                     Votre vidéo est maintenant disponible dans votre bibliothèque.
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Redirection automatique dans quelques secondes...
                   </p>
                 </div>
               )}
@@ -175,13 +155,13 @@ export default function RenderStatus() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Erreur lors de la génération
                   </h3>
                   {project.renderError && (
                     <p className="text-red-600 mb-4">{project.renderError}</p>
                   )}
-                  <p className="text-gray-600">
+                  <p className="text-foreground">
                     Une erreur s&apos;est produite lors de la génération de votre vidéo.
                   </p>
                 </div>
@@ -191,60 +171,51 @@ export default function RenderStatus() {
               <div className="flex justify-center space-x-4">
                 {project.status === 'completed' && project.publishedUrl && (
                   <>
-                    <button
+                    <Button
+                      variant="primary"
                       onClick={() => router.push('/videos')}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
+                      className='w-full'
+                      >
                       Voir mes vidéos
-                    </button>
-                    <a
-                      href={project.publishedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    </Button>
+                    <Button
+                      variant="white"
+                      onClick={() => project.publishedUrl && router.push(project.publishedUrl)}
+                      className='w-full'
                     >
                       Voir la vidéo
-                    </a>
+                    </Button>
                   </>
                 )}
 
                 {project.status === 'error' && (
                   <>
-                    <button
+                    <Button 
+                      variant="primary"
                       onClick={() => router.push(`/project/${projectId}/generate`)}
-                      className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    >
+                      className='w-full'
+                      >
                       Réessayer
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="white"
                       onClick={() => router.push(`/project/${projectId}`)}
-                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                    >
+                      className='w-full'
+                      >
                       Retour au projet
-                    </button>
+                    </Button>
                   </>
                 )}
 
                 {project.status === 'rendering' && (
-                  <button
+                  <Button
+                    variant='white'
                     onClick={() => router.push('/projects')}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                   >
                     Retour aux projets
-                  </button>
+                  </Button>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Informations du projet */}
-          <div className="bg-gray-50 px-6 py-4">
-            <h4 className="font-medium text-gray-900 mb-2">Détails du projet</h4>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Clips : {project.timeline?.clips?.length || 0}</p>
-              <p>Durée : {Math.round((project.timeline?.duration || 0) / 60)} minutes</p>
-              <p>Format : {project.renderSettings?.format?.toUpperCase() || 'MP4'}</p>
-              <p>Qualité : {project.renderSettings?.quality || 'medium'}</p>
             </div>
           </div>
         </div>
