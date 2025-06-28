@@ -47,6 +47,10 @@ const VideoAssetSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isAudioOnly: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CutToolState } from './cutToolHandler';
+import { Icon } from '@/components';
 
 /**
  * Props pour le composant CutToolUI
@@ -80,41 +81,14 @@ export const CutToolButton: React.FC<CutToolButtonProps> = React.memo(({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`
-        inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md
-        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
-        transform active:</div>scale-95
-        ${isActive 
-          ? 'bg-blue-600 text-white border-2 border-blue-400 shadow-lg shadow-blue-500/25 hover:bg-blue-700 focus:ring-blue-500 ring-2 ring-blue-400/50' 
-          : 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600 hover:text-white focus:ring-gray-500'
-        }
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}
-        ${className}
-      `}
       title={`Outil de découpe ${isActive ? '(actif)' : ''} - Raccourci: C`}
       aria-pressed={isActive}
     >
-      {/* Icône de ciseaux/découpe */}
-      <svg 
-        width="16" 
-        height="16" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-        className={`mr-2 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
-      >
-        <path 
-          d="M6 6L18 18M6 18L18 6" 
-          stroke="currentColor" 
-          strokeWidth="2" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        <circle cx="6" cy="6" r="3" stroke="currentColor" strokeWidth="2"/>
-        <circle cx="6" cy="18" r="3" stroke="currentColor" strokeWidth="2"/>
-        <path d="M14.5 9.5L17.5 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-      {isActive ? 'Cut (Actif)' : 'Cut'}
+      <Icon 
+        name="cut" 
+        size={15}
+        className={`${isActive ? 'fill-main' : 'fill-foreground'}`}
+      />
     </button>
   );
 });

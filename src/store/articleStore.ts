@@ -49,7 +49,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
 
         if (data.articles && Array.isArray(data.articles)) {
 
-          const validArticles = data.articles.filter(article =>
+          const validArticles = data.articles.filter((article: Article) =>
             article && typeof article === 'object' && article._id && article.title
           );
           console.log('Valid articles count:', validArticles.length);

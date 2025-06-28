@@ -89,28 +89,26 @@ export default function RenderStatus() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-2xl mx-auto">
-        <div>
+      <div className="max-w-2xl mx-auto mt-12">
+        <div className='flex flex-col gap-20'>
           {/* En-tête */}
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-foreground">
-              Génération de la vidéo
-            </h1>
-          </div>
+          <h1 className="text-foreground uppercase">
+            Génération de la vidéo
+          </h1>
 
           {/* Statut */}
-          <div className="flex flex-col items-center justify-center gap-10">
-            <div className="w-full items-center gap-10">
-              <h2>
+          <div className="flex flex-col items-center justify-center px-8">
+            <div className="flex flex-col w-full items-center gap-5">
+              <h2 className='text-center'>
                 {getStatusText(project.status)}
               </h2>
 
               {/* Barre de progression */}
               {project.status === 'rendering' && (
-                <div className="flex flex-col items-center gap-4">
-                  <div className="bg-foreground rounded-full h-4">
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <div className="bg-foreground rounded-full h-4 w-full overflow-hidden">
                     <div 
-                      className="bg-main h-3 rounded-full transition-all duration-300 ease-out"
+                      className="bg-main h-4 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${project.renderProgress || 0}%` }}
                     ></div>
                   </div>

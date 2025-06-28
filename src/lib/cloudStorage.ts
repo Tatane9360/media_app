@@ -1,9 +1,10 @@
 import { v2 as cloudinary } from "cloudinary";
-import { generateThumbnail } from "./videoProcessing";
 import { tmpdir } from "os";
 import { join } from "path";
 import { writeFile } from "fs/promises";
 import stream from "stream";
+
+import { generateThumbnail } from "./videoProcessing";
 
 // Types pour Cloudinary
 type CloudinaryTransformation = Record<string, string | number | boolean>;

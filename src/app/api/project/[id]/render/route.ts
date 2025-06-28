@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@lib";
-import { connectDB } from "@lib";
+
+import { authOptions, connectDB, uploadToCloudStorage, renderVideoFromTimeline } from "@lib";
 import { Project } from "@models";
 import { VideoAsset } from "@models";
-import { renderVideoFromTimeline } from "@lib";
-import { uploadToCloudStorage } from "@lib";
 import { Timeline, RenderSettings } from "@interface";
+
+// Forcer l'utilisation du Node.js runtime pour supporter les modules Node.js
+export const runtime = "nodejs";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     // Vérifier l'authentification - Commenté temporairement pour faciliter les tests
     // const session = await getServerSession(authOptions);
     // if (!session?.user) {
@@ -26,7 +28,7 @@ export async function POST(
     await connectDB();
 
     // Récupérer le projet
-    const projectId = params.id;
+    const projectId = id;
     const project = await Project.findById(projectId);
 
     if (!project) {
@@ -161,7 +163,7 @@ async function renderVideoAsync(
 
     // Mettre à jour le projet avec l'URL publiée
     project.publishedUrl = url;
-    
+
     if (!project.thumbnailUrl && thumbnailUrl) {
       project.thumbnailUrl = thumbnailUrl;
     }

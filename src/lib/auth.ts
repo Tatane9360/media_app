@@ -71,7 +71,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  secret: process.env.NEXTAUTH_SECRET || "votre-secret-ultra-sécurisé",
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 // Types pour augmenter les types de session NextAuth

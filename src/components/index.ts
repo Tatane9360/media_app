@@ -1,5 +1,6 @@
 export * from "./TimelineEditor";
 export { default as VideoUpload } from "./VideoUpload";
+export { default as MediaUpload } from "./MediaUpload";
 export * from "./CloudinaryImage";
 export * from "./CloudinaryVideoThumbnail";
 export * from "./VideoThumbnail";
