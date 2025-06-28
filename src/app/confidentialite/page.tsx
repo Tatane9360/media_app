@@ -25,7 +25,7 @@ export default function ConfidentialitePage() {
                 Nous collectons les informations que vous nous fournissez directement, notamment :
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Informations d'inscription (nom, email, mot de passe)</li>
+                <li>Informations d&apos;inscription (nom, email, mot de passe)</li>
                 <li>Contenu que vous créez ou partagez sur notre plateforme</li>
                 <li>Communications avec notre équipe support</li>
                 <li>Préférences et paramètres de votre compte</li>
@@ -79,7 +79,7 @@ export default function ConfidentialitePage() {
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Maintenir votre session de connexion</li>
                 <li>Mémoriser vos préférences</li>
-                <li>Analyser l'utilisation du site</li>
+                <li>Analyser l&apos;utilisation du site</li>
                 <li>Améliorer la performance du site</li>
               </ul>
               <p className="mt-4">
@@ -94,7 +94,7 @@ export default function ConfidentialitePage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles appropriées pour protéger vos données personnelles contre l'accès non autorisé, la modification, la divulgation ou la destruction. Cependant, aucune méthode de transmission sur Internet n'est 100% sécurisée.
+                Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles appropriées pour protéger vos données personnelles contre l&apos;accès non autorisé, la modification, la divulgation ou la destruction. Cependant, aucune méthode de transmission sur Internet n&apos;est 100% sécurisée.
               </p>
             </div>
           </section>
@@ -108,11 +108,11 @@ export default function ConfidentialitePage() {
                 Conformément au RGPD, vous disposez des droits suivants :
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong>Droit d'accès :</strong> consulter les données que nous détenons sur vous</li>
+                <li><strong>Droit d&apos;accès :</strong> consulter les données que nous détenons sur vous</li>
                 <li><strong>Droit de rectification :</strong> corriger les données inexactes</li>
-                <li><strong>Droit à l'effacement :</strong> demander la suppression de vos données</li>
+                <li><strong>Droit à l&apos;effacement :</strong> demander la suppression de vos données</li>
                 <li><strong>Droit à la portabilité :</strong> récupérer vos données dans un format structuré</li>
-                <li><strong>Droit d'opposition :</strong> vous opposer au traitement de vos données</li>
+                <li><strong>Droit d&apos;opposition :</strong> vous opposer au traitement de vos données</li>
                 <li><strong>Droit à la limitation :</strong> demander la limitation du traitement</li>
               </ul>
             </div>
