@@ -22,7 +22,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="space-y-3 text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                <strong>Nom de l'entreprise :</strong> [Nom de votre entreprise]
+                <strong>Nom de l&apos;entreprise :</strong> [Nom de votre entreprise]
               </p>
               <p>
                 <strong>Forme juridique :</strong> [Forme juridique]
@@ -68,10 +68,10 @@ export default function MentionsLegalesPage() {
                 Ce site est hébergé par :
               </p>
               <p>
-                <strong>Nom de l'hébergeur :</strong> [Nom de l'hébergeur]
+                <strong>Nom de l&apos;hébergeur :</strong> [Nom de l&apos;hébergeur]
               </p>
               <p>
-                <strong>Adresse :</strong> [Adresse de l'hébergeur]
+                <strong>Adresse :</strong> [Adresse de l&apos;hébergeur]
               </p>
               <p>
                 <strong>Téléphone :</strong> [Numéro de téléphone]
@@ -85,7 +85,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                L'ensemble de ce site relève de la législation française et internationale sur le droit d'auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
+                L&apos;ensemble de ce site relève de la législation française et internationale sur le droit d'auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
               </p>
             </div>
           </section>
@@ -96,7 +96,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                Les informations contenues sur ce site sont aussi précises que possible et le site remis à jour à différentes périodes de l'année, mais peut toutefois contenir des inexactitudes ou des omissions. Si vous constatez une lacune, erreur ou ce qui parait être un dysfonctionnement, merci de bien vouloir le signaler par email.
+                Les informations contenues sur ce site sont aussi précises que possible et le site remis à jour à différentes périodes de l&apos;année, mais peut toutefois contenir des inexactitudes ou des omissions. Si vous constatez une lacune, erreur ou ce qui parait être un dysfonctionnement, merci de bien vouloir le signaler par email.
               </p>
             </div>
           </section>
@@ -107,7 +107,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                Les liens hypertextes mis en place dans le cadre du présent site web en direction d'autres ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de [Nom de votre entreprise].
+                Les liens hypertextes mis en place dans le cadre du présent site web en direction d&apos;autres ressources présentes sur le réseau Internet ne sauraient engager la responsabilité de [Nom de votre entreprise].
               </p>
             </div>
           </section>
@@ -118,7 +118,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                Aucune information personnelle n'est collectée à votre insu. Aucune information personnelle n'est cédée à des tiers. Pour plus d'informations, consultez notre politique de confidentialité.
+                Aucune information personnelle n&apos;est collectée à votre insu. Aucune information personnelle n&apos;est cédée à des tiers. Pour plus d&apos;informations, consultez notre politique de confidentialité.
               </p>
             </div>
           </section>
@@ -129,7 +129,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                Tout litige en relation avec l'utilisation du site est soumis au droit français. Il est fait attribution exclusive de juridiction aux tribunaux compétents de [Ville].
+                Tout litige en relation avec l&apos;utilisation du site est soumis au droit français. Il est fait attribution exclusive de juridiction aux tribunaux compétents de [Ville].
               </p>
             </div>
           </section>
