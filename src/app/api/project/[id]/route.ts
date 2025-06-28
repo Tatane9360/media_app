@@ -101,8 +101,10 @@ export async function GET(
 // Mettre à jour un projet
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
+  const id = context?.params?.id;
+  
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
@@ -113,10 +115,6 @@ export async function PUT(
 
     // Connexion à MongoDB
     await connectDB();
-
-    // Extraire et valider l'ID du projet
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
 
     // Vérifier si l'ID est un ID MongoDB valide
     const isValidMongoId = /^[0-9a-fA-F]{24}$/.test(id);
@@ -195,8 +193,10 @@ export async function PUT(
 // Supprimer un projet
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
+  const id = context?.params?.id;
+  
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
@@ -207,11 +207,6 @@ export async function DELETE(
 
     // Connexion à MongoDB
     await connectDB();
-
-    // Extraire et valider l'ID du projet
-    // Utiliser await Promise.resolve() pour résoudre la promesse params
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
 
     // Vérifier si l'ID est un ID MongoDB valide (24 caractères hexadécimaux)
     const isValidMongoId = /^[0-9a-fA-F]{24}$/.test(id);
