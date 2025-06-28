@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 
 export interface AppLoaderConfig {
-  /** Durée minimale d'affichage en millisecondes */
-  minDuration?: number;
   /** Clé de session pour éviter le re-affichage */
   sessionKey?: string;
   /** Forcer l'affichage même si déjà visité */
@@ -10,32 +8,29 @@ export interface AppLoaderConfig {
 }
 
 export const useAppLoader = (config: AppLoaderConfig = {}) => {
-  const {
-    minDuration = 2000,
-    sessionKey = "hasVisited",
-    forceShow = false,
-  } = config;
+  const { sessionKey = "hasVisited", forceShow = false } = config;
 
-  const [isLoading, setIsLoading] = useState(() => {
-    // Vérifier si c'est la première visite seulement côté client
-    if (typeof window !== "undefined" && !forceShow) {
-      return !sessionStorage.getItem(sessionKey);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialisation côté client uniquement
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (!forceShow) {
+        const hasVisited = sessionStorage.getItem(sessionKey);
+        setIsLoading(!hasVisited);
+      }
+      setIsInitialized(true);
     }
-    return true;
-  });
-
-  const [startTime] = useState(() => Date.now());
+  }, [sessionKey, forceShow]);
 
   const completeLoading = () => {
-    const elapsed = Date.now() - startTime;
-    const remainingTime = Math.max(0, minDuration - elapsed);
+    if (!isInitialized) return;
 
-    setTimeout(() => {
-      if (typeof window !== "undefined" && !forceShow) {
-        sessionStorage.setItem(sessionKey, "true");
-      }
-      setIsLoading(false);
-    }, remainingTime);
+    if (typeof window !== "undefined" && !forceShow) {
+      sessionStorage.setItem(sessionKey, "true");
+    }
+    setIsLoading(false);
   };
 
   const resetLoader = () => {
@@ -46,7 +41,7 @@ export const useAppLoader = (config: AppLoaderConfig = {}) => {
   };
 
   return {
-    isLoading,
+    isLoading: isLoading && isInitialized,
     completeLoading,
     resetLoader,
   };

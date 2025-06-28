@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLoader } from '@components';
 import { useAppLoader } from '@hooks';
 
@@ -10,9 +10,6 @@ interface ClientLayoutProps {
   loaderConfig?: {
     videoSrc: string;
     fallbackVideoSrc?: string;
-    minDuration?: number;
-    loadingText?: string;
-    showProgress?: boolean;
   };
 }
 
@@ -21,9 +18,15 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({
   loaderConfig 
 }) => {
   const [showContent, setShowContent] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { isLoading, completeLoading } = useAppLoader({
-    minDuration: loaderConfig?.minDuration || 2000,
+    forceShow: false
   });
+
+  // Éviter les problèmes d'hydratation
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleLoadingComplete = () => {
     completeLoading();
@@ -32,6 +35,10 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({
       setShowContent(true);
     }, 100);
   };
+
+  if (!isMounted) {
+    return null;
+  }
 
   if (isLoading && loaderConfig) {
     return (
@@ -47,7 +54,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({
   }
 
   return (
-    <div className={`transition-opacity duration-500 ${showContent || !loaderConfig ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`transition-opacity duration-500 ${showContent || !loaderConfig ? 'opacity-100' : ''}`}>
       {children}
     </div>
   );

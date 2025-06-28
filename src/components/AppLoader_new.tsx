@@ -7,6 +7,8 @@ interface AppLoaderProps {
   videoSrc: string;
   /** Vidéo de fallback en cas d'erreur de chargement */
   fallbackVideoSrc?: string;
+  /** Durée minimale d'affichage du loader en millisecondes */
+  minDuration?: number;
   /** Callback appelé quand le chargement est terminé */
   onLoadingComplete?: () => void;
 }
@@ -14,6 +16,7 @@ interface AppLoaderProps {
 const AppLoader: React.FC<AppLoaderProps> = ({
   videoSrc,
   fallbackVideoSrc,
+  minDuration = 2000,
   onLoadingComplete,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -23,16 +26,8 @@ const AppLoader: React.FC<AppLoaderProps> = ({
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Déterminer le type MIME basé sur l'extension
-  const getVideoType = (src: string) => {
-    if (src.endsWith('.mp4')) return 'video/mp4';
-    if (src.endsWith('.webm')) return 'video/webm';
-    return 'video/mp4'; // Par défaut
-  };
-
   // Gestion du chargement de la vidéo
   const handleVideoLoad = () => {
-    console.log('Vidéo chargée avec succès:', currentVideoSrc);
     setVideoLoaded(true);
     if (videoRef.current) {
       videoRef.current.play().catch((error) => {
@@ -45,15 +40,12 @@ const AppLoader: React.FC<AppLoaderProps> = ({
 
   // Gestion des erreurs vidéo avec fallback
   const handleVideoError = () => {
-    console.error('Erreur de chargement de la vidéo:', currentVideoSrc);
-    
     if (fallbackVideoSrc && currentVideoSrc !== fallbackVideoSrc) {
-      console.warn('Utilisation du fallback:', fallbackVideoSrc);
+      console.warn('Erreur de chargement vidéo, utilisation du fallback');
       setCurrentVideoSrc(fallbackVideoSrc);
       setVideoError(false);
-      setVideoLoaded(false);
     } else {
-      console.error('Aucun fallback disponible, affichage du fond de secours');
+      console.error('Erreur de chargement de la vidéo de loader');
       setVideoError(true);
       // En cas d'erreur, passer directement au contenu après 2 secondes
       setTimeout(() => {
@@ -64,7 +56,6 @@ const AppLoader: React.FC<AppLoaderProps> = ({
 
   // Gestion de la fin de la vidéo
   const handleVideoEnded = () => {
-    console.log('Vidéo terminée, transition vers le contenu principal');
     setTimeout(() => {
       setIsVisible(false);
       setTimeout(() => {
@@ -77,7 +68,7 @@ const AppLoader: React.FC<AppLoaderProps> = ({
 
   return (
     <div 
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-background transition-opacity duration-800 ${
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black transition-opacity duration-800 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
       role="dialog"
@@ -89,7 +80,7 @@ const AppLoader: React.FC<AppLoaderProps> = ({
         {!videoError && (
           <video
             ref={videoRef}
-            className="w-full h-auto max-h-full object-contain"
+            className="absolute inset-0 w-full h-full object-cover"
             autoPlay
             muted
             playsInline
@@ -100,9 +91,9 @@ const AppLoader: React.FC<AppLoaderProps> = ({
             onEnded={handleVideoEnded}
             style={{ filter: videoLoaded ? 'none' : 'blur(10px)' }}
           >
-            <source src={currentVideoSrc} type={getVideoType(currentVideoSrc)} />
+            <source src={currentVideoSrc} type="video/webm" />
             {fallbackVideoSrc && fallbackVideoSrc !== currentVideoSrc && (
-              <source src={fallbackVideoSrc} type={getVideoType(fallbackVideoSrc)} />
+              <source src={fallbackVideoSrc} type="video/webm" />
             )}
             Votre navigateur ne supporte pas la vidéo.
           </video>
@@ -110,12 +101,12 @@ const AppLoader: React.FC<AppLoaderProps> = ({
 
         {/* Pattern de fond animé en cas d'erreur vidéo */}
         {videoError && (
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary to-main">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
             <div className="absolute inset-0 opacity-20">
               {[...Array(20)].map((_, i) => (
                 <div
                   key={i}
-                  className="absolute w-2 h-2 bg-foreground rounded-full animate-pulse"
+                  className="absolute w-2 h-2 bg-white rounded-full animate-pulse"
                   style={{
                     left: `${Math.random() * 100}%`,
                     top: `${Math.random() * 100}%`,

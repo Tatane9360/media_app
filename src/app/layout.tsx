@@ -6,6 +6,8 @@ import "@uiw/react-md-editor/markdown-editor.css";
 
 import { Navbar, Footer, Header } from "@components";
 
+import ClientLayout from "./ClientLayout";
+
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
@@ -34,12 +36,19 @@ export default function RootLayout({
         className={`${poppins.variable} antialiased pb-16`}
         suppressHydrationWarning={true}
       >
-        <Header />
-        <main className="min-h-screen p-4">
-          {children}
-        </main>
-        <Footer />
-        <Navbar />
+        <ClientLayout
+          loaderConfig={{
+            videoSrc: "/videos/loader-main.mp4",
+            fallbackVideoSrc: "/videos/loader-main.webm",
+          }}
+        >
+          <Header />
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+          <Navbar />
+        </ClientLayout>
       </body>
     </html>
   );
