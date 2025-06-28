@@ -147,6 +147,24 @@ export default function ProjectEdit() {
     // Rediriger vers la page de génération
     router.push(`/project/${projectId}/generate`);
   };
+
+  const handleDeleteProject = async (id: string) => {
+    if (!id) return;
+
+    try {
+      const response = await fetch(`/api/project/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du projet');
+      }
+      
+      router.push('/projects');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du projet');
+    }
+  };
   
   if (loading) {
     return (
@@ -201,10 +219,14 @@ export default function ProjectEdit() {
             </h1>
           </div>
 
-          <Icon
-            name="edit"
-            className="h-5 w-5 text-foreground"
-          />
+          <div className='cursor-pointer'
+            onClick={() => {handleDeleteProject(projectId)}}
+          >
+            <Icon
+              name="delete"
+              className="h-5 w-5 text-foreground"
+            />
+          </div>
         </div>
         
         <Button
