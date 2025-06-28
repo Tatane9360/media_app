@@ -8,9 +8,9 @@ import { Clip } from "@interface";
 // Récupérer un projet par son ID
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: any
 ) {
-  const { id } = context.params;
+  const id = context?.params?.id;
   
   try {
     // Vérifier l'authentification
