@@ -110,11 +110,11 @@ export default function ActualitePage() {
                                 </div>
                                 
                                 <div className="absolute top-4 right-4 flex gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditArticle(article);
-                                        }}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditArticle(article);
+                                    }}
                                         className="bg-[#E94E1B] text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#E94E1B]/90 transition-colors"
                                         aria-label="Modifier l'article"
                                     >
@@ -129,7 +129,7 @@ export default function ActualitePage() {
                                         aria-label="Supprimer l'article"
                                     >
                                         <Icon name="trash" size={14} color="white" />
-                                    </button>
+                                </button>
                                 </div>
                             </div>
                         ))

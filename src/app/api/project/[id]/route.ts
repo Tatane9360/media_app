@@ -8,8 +8,10 @@ import { Clip } from "@interface";
 // Récupérer un projet par son ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const { id } = context.params;
+  
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
@@ -20,11 +22,6 @@ export async function GET(
 
     // Connexion à MongoDB
     await connectDB();
-
-    // Extraire et valider l'ID du projet
-    // Utiliser await Promise.resolve() pour résoudre la promesse params
-    const resolvedParams = await Promise.resolve(params);
-    const id = resolvedParams.id;
 
     // Vérifier si l'ID est un ID MongoDB valide (24 caractères hexadécimaux)
     const isValidMongoId = /^[0-9a-fA-F]{24}$/.test(id);
