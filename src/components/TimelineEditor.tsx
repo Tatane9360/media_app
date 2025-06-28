@@ -404,25 +404,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   useEffect(() => {
     cutToolHandler.updateTimeline(timeline);
   }, [timeline, cutToolHandler]);
-
-  // Effet pour les gestionnaires d'événements du CutTool
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const wasActive = cutToolHandler.isActive();
-      cutToolHandler.handleKeyDown(event);
-      const isNowActive = cutToolHandler.isActive();
-      
-      // Mettre à jour l'état local si l'état a changé
-      if (wasActive !== isNowActive) {
-        setCutToolActive(isNowActive);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [cutToolHandler]);
   
   // Gestion du défilement de la timeline
   const handleTimelineScroll = () => {
@@ -1564,6 +1545,58 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       console.error("Erreur lors du nettoyage des gestionnaires:", error);
     }
   }, []);
+
+    useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Éviter de déclencher l'action si l'utilisateur tape dans un champ de saisie
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Gestion de la suppression avec Delete/Backspace
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        // Supprimer le clip vidéo sélectionné en priorité
+        if (selectedClipId) {
+          removeClip(selectedClipId);
+          return;
+        }
+        
+        // Supprimer la piste audio sélectionnée si aucun clip vidéo n'est sélectionné
+        if (selectedAudioTrackId) {
+          const selectedAudioTrack = timeline.audioTracks.find(track => 
+            (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
+          );
+          
+          if (selectedAudioTrack) {
+            removeAudioTrack(selectedAudioTrack.id || selectedAudioTrack._id?.toString() || '');
+          }
+        }
+        return;
+      }
+
+      if (event.key === 'Space') {
+        event.preventDefault();
+        togglePlayback();
+      }
+
+      if (event.key === 'c') {
+        // Gestion des événements du CutTool
+        const wasActive = cutToolHandler.isActive();
+        cutToolHandler.handleKeyDown(event);
+        const isNowActive = cutToolHandler.isActive();
+        
+        // Mettre à jour l'état local si l'état a changé
+        if (wasActive !== isNowActive) {
+          setCutToolActive(isNowActive);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [cutToolHandler, selectedClipId, selectedAudioTrackId, timeline.audioTracks, removeClip, removeAudioTrack, togglePlayback]);
   
   // Nettoyer les listeners au démontage du composant
   useEffect(() => {
@@ -2068,143 +2101,6 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             ))}
         </div>
       </div>
-      
-      {/* Propriétés du clip sélectionné */}
-      {selectedClip && (
-        <div className="p-4 bg-gray-800 border-t border-secondary">
-          <h3 className="text-foreground text-lg mb-2">Propriétés du clip vidéo</h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-400 mb-1">Position dans la timeline</label>
-              <div className="text-foreground bg-secondary p-2 rounded">
-                {formatTime(selectedClip.startTime)} - {formatTime(selectedClip.endTime)}
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-gray-400 mb-1">Trimming</label>
-              <div className="text-foreground bg-secondary p-2 rounded">
-                <div className="flex justify-between">
-                  <span>Début: {(selectedClip.trimStart || 0).toFixed(1)}s</span>
-                  <span>Fin: {(selectedClip.trimEnd || 0).toFixed(1)}s</span>
-                </div>
-                <div className="mt-2 text-xs text-gray-400">
-                  Utilisez les poignées sur les bords du clip pour ajuster le trimming
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-gray-400 mb-1">Volume</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={selectedClip.volume || 1}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  updateClip({
-                    ...selectedClip,
-                    volume: value
-                  } as Clip);
-                }}
-                className="w-full"
-              />
-            </div>
-            
-            <div className="flex items-end">
-              <button
-                onClick={() => removeClip(selectedClip.id as string)}
-                className="bg-red-600 text-foreground px-4 py-2 rounded"
-              >
-                Supprimer le clip
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Propriétés de la piste audio sélectionnée */}
-      {selectedAudioTrackId && timeline.audioTracks.find(track => 
-        (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
-      ) && (
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <h3 className="text-foreground text-lg mb-2">Propriétés de la piste audio</h3>
-          
-          {(() => {
-            const selectedAudioTrack = timeline.audioTracks.find(track => 
-              (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
-            );
-            
-            if (!selectedAudioTrack) return null;
-            
-            const isLinkedTrack = !!selectedAudioTrack.linkedVideoClipId;
-            
-            return (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-400 mb-1">Type</label>
-                  <div className="text-foreground bg-gray-700 p-2 rounded">
-                    {isLinkedTrack ? 'Audio lié (vidéo)' : 'Audio indépendant'}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-400 mb-1">Position dans la timeline</label>
-                  <div className="text-foreground bg-gray-700 p-2 rounded">
-                    {formatTime(selectedAudioTrack.startTime)} - {formatTime(selectedAudioTrack.endTime)}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-gray-400 mb-1">Volume</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={selectedAudioTrack.volume || 1}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      updateAudioTrack({
-                        ...selectedAudioTrack,
-                        volume: value
-                      });
-                    }}
-                    className="w-full"
-                    disabled={isLinkedTrack} // Désactiver pour les pistes liées (contrôlées par le clip vidéo)
-                  />
-                  {isLinkedTrack && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      Le volume est contrôlé par le clip vidéo associé
-                    </div>
-                  )}
-                </div>
-                
-                {!isLinkedTrack && (
-                  <div className="flex items-end">
-                    <button
-                      onClick={() => removeAudioTrack(selectedAudioTrack.id || selectedAudioTrack._id?.toString() || '')}
-                      className="bg-red-600 text-foreground px-4 py-2 rounded"
-                    >
-                      Supprimer la piste
-                    </button>
-                  </div>
-                )}
-                
-                {isLinkedTrack && (
-                  <div className="text-xs text-gray-400">
-                    Cette piste audio est automatiquement synchronisée avec son clip vidéo.
-                    Pour la modifier, ajustez le clip vidéo correspondant.
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-      )}
     </div>
   );
 };
