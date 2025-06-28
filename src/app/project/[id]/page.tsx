@@ -219,8 +219,11 @@ export default function ProjectEdit() {
             </h1>
           </div>
 
-          <div className='cursor-pointer'
-            onClick={() => {handleDeleteProject(projectId)}}
+          <div
+            className="cursor-pointer"
+            onClick={() => {
+              if (projectId) handleDeleteProject(projectId);
+            }}
           >
             <Icon
               name="delete"
