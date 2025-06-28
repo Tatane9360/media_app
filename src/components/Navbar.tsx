@@ -108,8 +108,7 @@ const Navbar = () => {
         <>
           <button onClick={handleLogout} className="flex flex-col items-center gap-0.5">
             <Icon 
-              name="arrowLeft"
-              // TODO : Change to logout icon
+              name="logout"
               size={28} 
               color="#F6F6F6" 
             />
