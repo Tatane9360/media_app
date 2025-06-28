@@ -16,6 +16,13 @@ interface CloudinaryUploadResult {
 
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier l'authentification
+    const token = request.cookies.get("token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+    
     const formData = await request.formData();
     const file = formData.get("file") as File;
 

@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 
-import { authOptions, connectDB } from "@lib";
+import { authOptions, connectDB, verifyToken } from "@lib";
 import { Project, VideoAsset } from "@models";
 
 // Récupérer tous les projets de l'utilisateur
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Vérifier l'authentification - Commenté temporairement pour faciliter les tests
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user) {
-    //   return NextResponse.json(
-    //     { error: "Authentification requise" },
-    //     { status: 401 }
-    //   );
-    // }
+    // Vérifier l'authentification
+    const token = request.cookies.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
 
     // Connexion à MongoDB
     await connectDB();
@@ -22,11 +20,6 @@ export async function GET() {
     // Récupérer les projets de l'utilisateur
     // Utiliser un objet vide pour récupérer tous les projets sans filtre
     const query = {};
-
-    // Si l'utilisateur n'est pas admin, filtrer par son ID - Commenté temporairement
-    // if (!session.user.isAdmin) {
-    //   query = { admin_id: session.user.id };
-    // }
 
     const projects = await Project.find(query)
       .populate("videoAssets")
@@ -45,14 +38,32 @@ export async function GET() {
 // Créer un nouveau projet
 export async function POST(req: NextRequest) {
   try {
-    // Vérifier l'authentification - Commenté temporairement pour faciliter les tests
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user) {
-    //   return NextResponse.json(
-    //     { error: "Authentification requise" },
-    //     { status: 401 }
-    //   );
-    // }
+    // Authentification hybride : token JWT ou session NextAuth
+    let userId = null;
+
+    const token = req.cookies.get("token")?.value;
+
+    if (token) {
+      const decoded = verifyToken(token);
+
+      if (typeof decoded === "string") {
+        userId = decoded;
+
+      } else if (decoded && typeof decoded === "object" && "id" in decoded) {
+        userId = (decoded as any).id;
+
+      } else {
+        return NextResponse.json({ error: "Token invalide" }, { status: 401 });
+      }
+    } else {
+      const session = await getServerSession(authOptions);
+
+      if (!session?.user) {
+        return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+      }
+      
+      userId = session.user.id;
+    }
 
     // Connexion à MongoDB
     await connectDB();
@@ -85,7 +96,7 @@ export async function POST(req: NextRequest) {
     const project = new Project({
       title: data.title,
       description: data.description || "",
-      admin_id: data.admin_id || "655f5b228d7c8ab62dbbc1ee", // ID temporaire pour les tests
+      admin_id: userId,
       videoAssets: data.videoAssets || [],
       timeline: data.timeline || {
         duration: 0,

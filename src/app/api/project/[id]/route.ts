@@ -12,15 +12,11 @@ export async function GET(
 ) {
   try {
     // Vérifier l'authentification
-    const session = await getServerSession(authOptions);
-
-    // Désactiver temporairement la vérification d'authentification pour déboguer
-    // if (!session?.user) {
-    //   return NextResponse.json(
-    //     { error: "Authentification requise" },
-    //     { status: 401 }
-    //   );
-    // }
+    const token = req.cookies.get("token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
 
     // Connexion à MongoDB
     await connectDB();
@@ -112,15 +108,11 @@ export async function PUT(
 ) {
   try {
     // Vérifier l'authentification
-    const session = await getServerSession(authOptions);
-
-    // Désactiver temporairement la vérification d'authentification pour déboguer
-    // if (!session?.user) {
-    //   return NextResponse.json(
-    //     { error: "Authentification requise" },
-    //     { status: 401 }
-    //   );
-    // }
+    const token = req.cookies.get("token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
 
     // Connexion à MongoDB
     await connectDB();
@@ -145,11 +137,6 @@ export async function PUT(
     if (!existingProject) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
-
-    // Vérifier que l'administrateur est le propriétaire du projet - Commenté temporairement
-    // if (existingProject.admin_id.toString() !== session.user.id) {
-    //   return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    // }
 
     // Récupérer les données de mise à jour
     const updateData = await req.json();
@@ -214,14 +201,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Vérifier l'authentification - Commenté temporairement pour faciliter les tests
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user) {
-    //   return NextResponse.json(
-    //     { error: "Authentification requise" },
-    //     { status: 401 }
-    //   );
-    // }
+    // Vérifier l'authentification
+    const token = req.cookies.get("token")?.value;
+    
+    if (!token) {
+      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
 
     // Connexion à MongoDB
     await connectDB();
@@ -247,11 +232,6 @@ export async function DELETE(
     if (!project) {
       return NextResponse.json({ error: "Projet non trouvé" }, { status: 404 });
     }
-
-    // Vérifier que l'administrateur est le propriétaire du projet - Commenté temporairement
-    // if (project.admin_id.toString() !== session.user.id) {
-    //   return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    // }
 
     // Supprimer le projet
     await Project.findByIdAndDelete(id);
