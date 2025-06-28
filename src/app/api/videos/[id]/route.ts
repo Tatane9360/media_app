@@ -8,12 +8,12 @@ import { Project } from "@models";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
     await connectDB();
 
-    const { id } = await params;
+    const id = context?.params?.id;
 
     // Récupérer le projet avec ses détails complets
     const project = (await Project.findById(id)
@@ -72,12 +72,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
+  const id = context?.params?.id;
   try {
     await connectDB();
-
-    const { id } = await params;
 
     // Vérifier que l'ID est un ID MongoDB valide
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
