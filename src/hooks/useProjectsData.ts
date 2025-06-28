@@ -37,12 +37,29 @@ export const useProjectsData = () => {
     });
   };
 
+  const deleteProject = async (projectId: string) => {
+    const response = await fetch(`/api/project/${projectId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.message) {
+      throw new Error("Erreur lors de la suppression du projet");
+    }
+  };
+
   const invalidateProjects = () => {
     cache.clear("projects-list");
   };
 
   return {
     fetchProjects,
+    deleteProject,
     invalidateProjects,
     loading: cache.loading,
     error: cache.error,
