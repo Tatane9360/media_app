@@ -109,7 +109,7 @@ export default function AdminDashboard() {
             <div className="w-32 h-32 border-2 border-dashed border-foreground rounded-lg flex items-center justify-center">
               <Icon name="document" size={48} color="#F6F6F6" />
             </div>
-            <Link href="/admin/articles" className="flex-1">
+            <Link href="/admin/actualite" className="flex-1">
               <Button variant="primary" size="lg" className="w-full">
                 ACTUALITÉS
               </Button>

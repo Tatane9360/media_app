@@ -5,7 +5,7 @@ const VideosSection = () => {
   return (
     <section className="bg-dark px-6 py-8">
       <h2 className="text-light text-2xl font-bold mb-6">
-        VIDÉOS EXCLUSIVES
+        DERNIÈRES VIDÉOS
       </h2>      <div className="relative max-w-4xl mx-auto">
         {/* Player vidéo intégré avec conteneur responsive */}
         <div className="relative rounded-lg overflow-hidden mb-4 pb-[56.25%] h-0">
@@ -20,8 +20,8 @@ const VideosSection = () => {
         </div>
 
         <div className="text-center">
-          <Button variant="primary" size="lg" className="font-bold">
-            EXCLUSIVITÉ
+          <Button variant="white" size="lg" className="font-bold">
+            Voir sur Youtube
           </Button>
         </div>
       </div>

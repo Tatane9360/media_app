@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unlink } from "fs/promises";
+import path from "path";
 
 import { verifyToken, connectDB } from "@lib";
 import { Article } from "@models";
@@ -82,11 +84,29 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const article = await Article.findByIdAndDelete(params.id);
+    const article = await Article.findById(params.id);
 
     if (!article) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
+
+    if (article.image) {
+      try {
+        const imageUrl = article.image;
+        
+        if (imageUrl.includes('/uploads/')) {
+          const fileName = imageUrl.split('/uploads/')[1];
+          const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+          
+          await unlink(filePath);
+          console.log(`Image supprimée: ${filePath}`);
+        }
+      } catch (imageError) {
+        console.warn("Erreur lors de la suppression de l'image:", imageError);
+      }
+    }
+
+    await Article.findByIdAndDelete(params.id);
 
     return NextResponse.json({ message: "Article deleted successfully" });
   } catch (error) {

@@ -3,7 +3,7 @@ import Icon, { IconName } from './Icon';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'white';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'white' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   icon?: IconName;
   iconPosition?: 'left' | 'right';
@@ -33,6 +33,7 @@ const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-navy text-light hover:bg-navy/90 active:bg-navy/80',
     ghost: 'bg-transparent text-light hover:bg-light/10 active:bg-light/20',
     white: 'bg-foreground text-background hover:bg-foreground/90 active:bg-foreground/80',
+    danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
   };
   
   const sizeClasses = {

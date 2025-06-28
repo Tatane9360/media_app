@@ -42,7 +42,7 @@ const ActualitesCarousel = () => {
   if (loading) {
     return (
       <section className="bg-dark py-8">
-        <div className="px-4 sm:px-6 mb-6">
+        <div className="px-4 sm:px-6 lg:px-8 mb-6">
           <h2 className="text-light text-xl sm:text-2xl font-bold">ACTUALITÉS</h2>
         </div>
         <div className="flex justify-center items-center py-12">
@@ -55,7 +55,7 @@ const ActualitesCarousel = () => {
   if (error) {
     return (
       <section className="bg-dark py-8">
-        <div className="px-4 sm:px-6 mb-6">
+        <div className="px-4 sm:px-6 lg:px-8 mb-6">
           <h2 className="text-light text-xl sm:text-2xl font-bold">ACTUALITÉS</h2>
         </div>
         <div className="flex justify-center items-center py-12">
@@ -69,13 +69,14 @@ const ActualitesCarousel = () => {
 
   return (
     <section className="bg-dark py-8">
-      <div className="px-4 sm:px-6 mb-6">
+      <div className="px-4 sm:px-6 lg:px-8 mb-6">
         <h2 className="text-light text-xl sm:text-2xl font-bold">ACTUALITÉS</h2>
       </div>
       
       {displayedArticles.length > 0 ? (
-        <div className="px-4 sm:px-6">
-          <div className="overflow-x-auto scrollbar-hide mb-8">
+        <div className="px-4 sm:px-6 lg:px-8">
+          {/* Mobile: Scroll horizontal */}
+          <div className="overflow-x-auto scrollbar-hide mb-8 lg:hidden">
             <div className="flex gap-4 pb-2">
               {displayedArticles.map((article: Article) => (
                 <Link 
@@ -90,6 +91,7 @@ const ActualitesCarousel = () => {
                           src={article.image}
                           alt={article.title}
                           fill
+                          sizes="(max-width: 768px) 320px, 384px"
                           className="object-cover"
                         />
                       ) : (
@@ -106,6 +108,48 @@ const ActualitesCarousel = () => {
                         {article.description || truncateContent(extractTextFromHTML(article.content))}
                       </p>
                       <div className="mt-2 text-xs text-light opacity-60">
+                        {new Date(article.createdAt).toLocaleDateString('fr-FR')}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop: Grille responsive */}
+          <div className="hidden lg:block mb-8">
+            <div className="grid lg:grid-cols-3 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              {displayedArticles.map((article: Article) => (
+                <Link 
+                  href={`/blog/${article._id}`} 
+                  key={article._id}
+                  className="group"
+                >
+                  <div className="bg-navy rounded-lg overflow-hidden h-full hover:bg-navy/90 transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
+                    <div className="relative aspect-video">
+                      {article.image ? (
+                        <Image
+                          src={article.image}
+                          alt={article.title}
+                          fill
+                          sizes="(min-width: 1280px) 400px, (min-width: 1024px) 350px, 300px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-600 flex items-center justify-center">
+                          <span className="text-gray-400">Pas d'image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-light font-bold text-lg mb-3 leading-tight group-hover:text-primary transition-colors">
+                        {article.title}
+                      </h3>
+                      <p className="text-light opacity-80 text-sm leading-relaxed mb-4">
+                        {article.description || truncateContent(extractTextFromHTML(article.content), 120)}
+                      </p>
+                      <div className="text-xs text-light opacity-60">
                         {new Date(article.createdAt).toLocaleDateString('fr-FR')}
                       </div>
                     </div>

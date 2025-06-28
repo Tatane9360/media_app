@@ -41,18 +41,14 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
         }
       });
       const data = await response.json();
-      console.log('API Response Status:', response.status);
-      console.log('API Response Raw Data:', data);
 
       if (response.ok) {
-        console.log('Articles received from API:', Array.isArray(data.articles) ? data.articles.length + ' articles' : 'Non-array response');
 
         if (data.articles && Array.isArray(data.articles)) {
 
           const validArticles = data.articles.filter((article: Article) =>
             article && typeof article === 'object' && article._id && article.title
           );
-          console.log('Valid articles count:', validArticles.length);
 
           set({ articles: validArticles, loading: false });
         } else {
@@ -70,7 +66,6 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   createArticle: async (articleData) => {
     set({ loading: true, error: null });
     try {
-      console.log('Creating article with data:', articleData);
       const response = await fetch('/api/articles', {
         method: 'POST',
         headers: {
@@ -80,17 +75,14 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       });
 
       const data = await response.json();
-      console.log('Creation response:', data);
 
       if (response.ok) {
-        console.log('Article created successfully:', data.article);
         set(state => ({
           articles: [data.article, ...state.articles],
           loading: false
         }));
         const isAdminContext = window.location.pathname.includes('/admin');
         setTimeout(() => {
-          console.log(`Rafraîchissement de la liste des articles après création... (admin mode: ${isAdminContext})`);
           get().fetchArticles(isAdminContext);
         }, 500);
       } else {
@@ -115,7 +107,6 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       });
 
       const data = await response.json(); if (response.ok) {
-        console.log('Article updated successfully:', data.article);
         set(state => ({
           articles: state.articles.map(article =>
             article._id === id ? data.article : article
@@ -126,7 +117,6 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
 
         const isAdminContext = window.location.pathname.includes('/admin');
         setTimeout(() => {
-          console.log(`Rafraîchissement de la liste des articles après mise à jour... (admin mode: ${isAdminContext})`);
           get().fetchArticles(isAdminContext);
         }, 500);
       } else {
@@ -143,7 +133,6 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       const response = await fetch(`/api/articles/${id}`, {
         method: 'DELETE',
       }); if (response.ok) {
-        console.log('Article deleted successfully:', id);
         set(state => ({
           articles: state.articles.filter(article => article._id !== id),
           loading: false
@@ -152,7 +141,6 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
 
         const isAdminContext = window.location.pathname.includes('/admin');
         setTimeout(() => {
-          console.log(`Rafraîchissement de la liste des articles après suppression... (admin mode: ${isAdminContext})`);
           get().fetchArticles(isAdminContext);
         }, 500);
       } else {

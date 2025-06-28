@@ -23,15 +23,11 @@ const Footer = () => {
           <Button variant="secondary" size="md" className="w-12 h-12 p-0">
             <Icon name="logoTikok" size={20} />
           </Button>
-          
-          <Button variant="secondary" size="md" className="w-12 h-12 p-0">
-            <Icon name="logoFacebook" size={20} />
-          </Button>
         </div>
         
         <div className="space-y-4 text-light text-sm">
           <div className="border-t border-gray-600 pt-6">
-            <Link href="/">
+            <Link href="/mentions-legales">
               <Button variant="ghost" size="sm" className="block mx-auto mb-3 font-medium">
                 MENTIONS LÉGALES
               </Button>
@@ -41,7 +37,7 @@ const Footer = () => {
                 ADMIN
               </Button>
             </Link>
-            <Link href="/">
+            <Link href="/confidentialite">
               <Button variant="ghost" size="sm" className="block mx-auto font-medium">
                 CONFIDENTIALITÉ
               </Button>

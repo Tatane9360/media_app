@@ -20,4 +20,5 @@ export { default as ActualitesCarousel } from "./ActualitesCarousel";
 export { default as VideosSection } from "./VideosSection";
 export { default as Footer } from "./Footer";
 export { default as Button } from "./Button";
+export { default as Modal } from "./Modal";
 export { default as AppLoader } from "./AppLoader";

@@ -19,20 +19,7 @@ const HeroSection = () => {
           icon="play"
           iconPosition="left"
         >
-          LECTURE
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="md"
-          className="opacity-90"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 border-2 border-light rounded-full flex items-center justify-center">
-              <span className="text-xs">i</span>
-            </div>
-            Voir la chaîne
-          </div>
+          JETTE UN OEIL
         </Button>
       </div>
     </div>
