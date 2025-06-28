@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
-import { BackButton } from '@components';
+import { BackButton, VideoCard } from '@components';
 
 interface Video {
   id: string;
@@ -165,43 +164,18 @@ export default function VideoDetail() {
           
           {otherVideos.length > 0 ? (
             <div className="overflow-x-auto scrollbar-hide">
-              <div className="flex gap-4 pb-4" style={{ width: 'max-content' }}>
+              <div className="flex gap-4" style={{ width: 'max-content' }}>
                 {otherVideos.map((otherVideo) => (
-                  <div key={otherVideo.id} className="group flex-shrink-0 w-80">
-                    <Link href={`/videos/${otherVideo.id}`}>
-                      <div className="overflow-hidden rounded-2xl bg-gray-800 hover:bg-gray-700 transition-all duration-300">
-                        {/* Thumbnail */}
-                        <div className="relative aspect-video">
-                          <Image
-                            src={otherVideo.thumbnailUrl}
-                            alt={otherVideo.title}
-                            fill
-                            className="object-cover rounded-t-2xl"
-                            sizes="320px"
-                          />
-
-                          {/* Arrow Button - Always visible */}
-                          <div className="absolute bottom-6 right-6 w-14 h-14 bg-orange rounded-full flex items-center justify-center hover:bg-orange/80 transition-colors duration-300">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                        
-                        {/* Title below thumbnail */}
-                        <div className="p-6">
-                          <h3 className="text-2xl font-bold text-white uppercase tracking-wide">
-                            {otherVideo.title}
-                          </h3>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
+                  <VideoCard 
+                    key={otherVideo.id}
+                    video={otherVideo}
+                    className="flex-shrink-0 w-80"
+                  />
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-gray-400">Aucune autre vidéo disponible pour le moment.</p>
+            <p className="text-foreground">Aucune autre vidéo disponible pour le moment.</p>
           )}
         </div>
       </div>
