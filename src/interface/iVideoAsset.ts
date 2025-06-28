@@ -20,7 +20,8 @@ export interface VideoAsset {
   fileSize: number;
   metadata: VideoAssetMetadata;
   tags: string[];
-  hasAudio?: boolean; // Indique si l'asset a une piste audio
+  hasAudio?: boolean;
+  isAudioOnly?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

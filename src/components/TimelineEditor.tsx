@@ -16,6 +16,7 @@ interface TimelineEditorProps {
   timeline: Timeline;
   videoAssets: VideoAsset[];
   onChange: (timeline: Timeline) => void;
+  onShowAssetModal?: () => void;
 }
 
 /**
@@ -25,7 +26,8 @@ interface TimelineEditorProps {
 const TimelineEditor: React.FC<TimelineEditorProps> = ({
   timeline,
   videoAssets,
-  onChange
+  onChange,
+  onShowAssetModal
 }) => {
   // Références et états
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -1951,9 +1953,19 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       
       {/* Panel des assets */}
       <div className="p-4 bg-gray-800 border-t border-gray-700">
-        <h3 className="text-white font-semibold mb-2">Assets vidéo</h3>
+        <div className='flex justify-between w-full gap-2'>
+          <h3 className="text-white font-semibold mb-2">Assets vidéo</h3>
+          <div
+            className="cursor-pointer"
+            onClick={() => onShowAssetModal?.()}
+            title="Ajouter un nouvel asset vidéo ou audio"
+          >
+            <Icon name="add" />
+          </div>
+        </div>
         <div className="grid grid-cols-3 gap-2">
-          {videoAssets.map(asset => (
+            {/* Video Assets */}
+            {videoAssets.filter(asset => !asset.isAudioOnly).map(asset => (
             <div 
               key={asset._id || asset.id}
               className="bg-gray-800 rounded overflow-hidden cursor-pointer relative"
@@ -1961,55 +1973,90 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               onDragStart={() => handleDragStart(asset)}
             >
               <div className="aspect-video relative">
-                {asset.metadata?.thumbnailUrl ? (
-                  <OptimizedImage 
-                    src={asset.metadata.thumbnailUrl} 
-                    alt={getAssetDisplayName(asset)}
-                    width={160}
-                    height={90}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <VideoThumbnail
-                    videoUrl={asset.storageUrl}
-                    alt={asset.originalName}
-                    width={160}
-                    height={90}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+              {asset.metadata?.thumbnailUrl ? (
+                <OptimizedImage 
+                src={asset.metadata.thumbnailUrl} 
+                alt={getAssetDisplayName(asset)}
+                width={160}
+                height={90}
+                className="w-full h-full object-cover"
+                />
+              ) : (
+                <VideoThumbnail
+                videoUrl={asset.storageUrl}
+                alt={asset.originalName}
+                width={160}
+                height={90}
+                className="w-full h-full object-cover"
+                />
+              )}
               </div>
               <div className="p-2">
-                <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
-                <div className="text-gray-400 text-xs">
-                  {formatTime(asset.duration)}
-                  {assetHasAudio(asset) && <span className="ml-1 text-green-400">🎵</span>}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Clic: Vidéo {assetHasAudio(asset) && '+ Shift: Audio seulement'}
-                </div>
+              <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
+              <div className="text-gray-400 text-xs">
+                {formatTime(asset.duration)}
+                {assetHasAudio(asset) && <span className="ml-1 text-green-400">🎵</span>}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Clic: Vidéo {assetHasAudio(asset) && '+ Shift: Audio seulement'}
+              </div>
               </div>
               
               {/* Gestionnaires de clic */}
               <div
-                className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={(e) => {
-                  if (e.shiftKey && assetHasAudio(asset)) {
-                    // Shift + clic = ajouter seulement l'audio
-                    addAudioTrack(asset, 1);
-                  } else {
-                    // Clic normal = ajouter comme clip vidéo (avec audio auto si présent)
-                    addClip(asset);
-                  }
-                }}
-                title={
-                  assetHasAudio(asset) 
-                    ? "Clic: Ajouter comme clip vidéo | Shift+Clic: Ajouter seulement l'audio"
-                    : "Clic: Ajouter comme clip vidéo"
+              className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={(e) => {
+                if (e.shiftKey && assetHasAudio(asset)) {
+                // Shift + clic = ajouter seulement l'audio
+                addAudioTrack(asset, 1);
+                } else {
+                // Clic normal = ajouter comme clip vidéo (avec audio auto si présent)
+                addClip(asset);
                 }
+              }}
+              title={
+                assetHasAudio(asset) 
+                ? "Clic: Ajouter comme clip vidéo | Shift+Clic: Ajouter seulement l'audio"
+                : "Clic: Ajouter comme clip vidéo"
+              }
               />
             </div>
-          ))}
+            ))}
+
+            {/* Audio Only Assets */}
+            <h3 className="text-white font-semibold mb-2 col-span-3 mt-4">Assets audio</h3>
+            {videoAssets.filter(asset => asset.isAudioOnly).map(asset => (
+            <div 
+              key={`audio-${asset._id || asset.id}`}
+              className="bg-gray-700 rounded overflow-hidden cursor-pointer relative"
+              draggable
+              onDragStart={() => handleDragStart(asset)}
+            >
+              <div className="aspect-video relative bg-gray-800 flex items-center justify-center">
+              <Icon name="play" size={48} className="text-gray-500" />
+              </div>
+              <div className="p-2">
+              <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
+              <div className="text-gray-400 text-xs">
+                {formatTime(asset.duration)}
+                <span className="ml-1 text-green-400">🎵</span>
+              </div>
+              <div className="text-xs text-green-400 mt-1">
+                Audio seulement
+              </div>
+              </div>
+              
+              {/* Gestionnaires de clic */}
+              <div
+              className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
+              onClick={() => {
+                // Toujours ajouter comme piste audio indépendante
+                addAudioTrack(asset, 1);
+              }}
+              title="Ajouter comme piste audio indépendante"
+              />
+            </div>
+            ))}
         </div>
       </div>
       

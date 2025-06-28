@@ -221,6 +221,7 @@ export default function ProjectEdit() {
           timeline={project.timeline}
           videoAssets={videoAssets}
           onChange={handleTimelineChange}
+          onShowAssetModal={() => setShowUploadModal(true)}
         />
       </div>
       
@@ -229,7 +230,7 @@ export default function ProjectEdit() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold">Ajouter des vidéos</h3>
+              <h3 className="text-xl font-bold">Ajouter des vidéos et fichiers audio</h3>
               <button 
                 onClick={() => setShowUploadModal(false)}
                 className="text-gray-500 hover:text-gray-700"

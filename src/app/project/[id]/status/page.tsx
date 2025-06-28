@@ -106,9 +106,9 @@ export default function RenderStatus() {
               {/* Barre de progression */}
               {project.status === 'rendering' && (
                 <div className="flex flex-col items-center gap-4 w-full">
-                  <div className="bg-gray-200 rounded-full h-4 w-full overflow-hidden">
+                  <div className="bg-foreground rounded-full h-4 w-full overflow-hidden">
                     <div 
-                      className="bg-blue-600 h-4 rounded-full transition-all duration-300 ease-out"
+                      className="bg-main h-4 rounded-full transition-all duration-300 ease-out"
                       style={{ width: `${project.renderProgress || 0}%` }}
                     ></div>
                   </div>

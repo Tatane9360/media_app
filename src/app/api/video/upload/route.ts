@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 
-import { authOptions, connectDB, extractVideoMetadata, uploadToCloudStorage } from "@lib";
+import {
+  authOptions,
+  connectDB,
+  extractVideoMetadata,
+  uploadToCloudStorage,
+} from "@lib";
 import { VideoAsset } from "@models";
 
 // Forcer l'utilisation du Node.js runtime pour supporter les modules Node.js
@@ -35,15 +40,15 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: "Aucun fichier vidéo fourni" },
+        { error: "Aucun fichier vidéo ou audio fourni" },
         { status: 400 }
       );
     }
 
-    // Vérifier le type de fichier
-    if (!file.type.startsWith("video/")) {
+    // Vérifier le type de fichier (vidéo ou audio)
+    if (!file.type.startsWith("video/") && !file.type.startsWith("audio/")) {
       return NextResponse.json(
-        { error: "Le fichier doit être une vidéo" },
+        { error: "Le fichier doit être une vidéo ou un fichier audio" },
         { status: 400 }
       );
     }
@@ -82,7 +87,10 @@ export async function POST(req: NextRequest) {
         audioSampleRate: metadata.audioSampleRate,
       },
       tags: formData.getAll("tags") as string[],
-      hasAudio: (metadata.audioChannels && metadata.audioChannels > 0) || false, // Détecter automatiquement
+      hasAudio:
+        (metadata.audioChannels && metadata.audioChannels > 0) ||
+        file.type.startsWith("audio/"), // Détecter automatiquement
+      isAudioOnly: file.type.startsWith("audio/"), // Marquer comme audio seulement si c'est un fichier audio
     });
 
     // Si un projectId est fourni, ajouter l'asset à ce projet
@@ -98,13 +106,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "Vidéo téléchargée avec succès",
+        message: "Fichier téléchargé avec succès",
         videoAsset,
       },
       { status: 201 }
     );
   } catch (error: unknown) {
-    console.error("Erreur lors du téléchargement de la vidéo:", error);
+    console.error("Erreur lors du téléchargement du fichier:", error);
     const errorMessage =
       error instanceof Error ? error.message : "Erreur inconnue";
     return NextResponse.json(
