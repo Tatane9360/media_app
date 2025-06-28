@@ -147,6 +147,24 @@ export default function ProjectEdit() {
     // Rediriger vers la page de génération
     router.push(`/project/${projectId}/generate`);
   };
+
+  const handleDeleteProject = async (id: string) => {
+    if (!id) return;
+
+    try {
+      const response = await fetch(`/api/project/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression du projet');
+      }
+      
+      router.push('/projects');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression du projet');
+    }
+  };
   
   if (loading) {
     return (
@@ -190,7 +208,7 @@ export default function ProjectEdit() {
   }
   
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-4">
       <BackButton variant="icon-only" />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className='flex items-center justify-between w-full md:w-auto gap-4'>
@@ -201,10 +219,14 @@ export default function ProjectEdit() {
             </h1>
           </div>
 
-          <Icon
-            name="edit"
-            className="h-5 w-5 text-foreground"
-          />
+          <div className='cursor-pointer'
+            onClick={() => {handleDeleteProject(projectId)}}
+          >
+            <Icon
+              name="delete"
+              className="h-5 w-5 text-foreground"
+            />
+          </div>
         </div>
         
         <Button
@@ -227,10 +249,9 @@ export default function ProjectEdit() {
       
       {/* Modal d'upload de vidéos */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold">Ajouter des vidéos et fichiers audio</h3>
+        <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-foreground rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-4 border-b flex justify-end items-center">
               <button 
                 onClick={() => setShowUploadModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -242,14 +263,6 @@ export default function ProjectEdit() {
             </div>
             <div className="p-4">
               <VideoUpload projectId={projectId} />
-            </div>
-            <div className="p-4 border-t flex justify-end">
-              <button 
-                onClick={() => setShowUploadModal(false)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Fermer
-              </button>
             </div>
           </div>
         </div>

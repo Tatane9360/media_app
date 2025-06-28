@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { VideoCard, ProjectCard, Button } from '@components';
+import { VideoCard, ProjectCard, Button, Icon } from '@components';
 import { useVideosData, useProjectsData } from '@hooks';
 
 interface Project {
@@ -42,6 +42,8 @@ export default function ProjectList() {
   const [publishedVideos, setPublishedVideos] = useState<Video[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // ID de la vidéo en cours de suppression
+  const [isDeletingProject, setIsDeletingProject] = useState<string | null>(null); // ID du projet en cours de suppression
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
@@ -96,6 +98,60 @@ export default function ProjectList() {
   // Compter les projets par catégorie
   const publishedCount = publishedVideos.length;
   const draftCount = projects.filter(project => project.status !== 'published').length;
+
+  const handleDeleteVideo = async (videoId: string) => {
+    try {
+      setIsDeleting(videoId); // Marquer cette vidéo comme en cours de suppression
+      
+      await videosData.deleteVideo(videoId);
+      
+      // Invalider le cache et recharger les vidéos
+      videosData.invalidateVideos();
+      
+      // Recharger les vidéos de la page actuelle
+      const result = await videosData.fetchVideos(currentPage, 12);
+      if (result) {
+        setPublishedVideos(result.videos);
+        setPagination(result.pagination);
+        
+        // Si la page actuelle est vide et qu'il y a des pages précédentes, revenir à la page précédente
+        if (result.videos.length === 0 && result.pagination.hasPrev) {
+          const prevPage = currentPage - 1;
+          setCurrentPage(prevPage);
+          const prevResult = await videosData.fetchVideos(prevPage, 12);
+          if (prevResult) {
+            setPublishedVideos(prevResult.videos);
+            setPagination(prevResult.pagination);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la vidéo:', error);
+    } finally {
+      setIsDeleting(null);
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      setIsDeletingProject(projectId); // Marquer ce projet comme en cours de suppression
+      
+      await projectsData.deleteProject(projectId);
+      
+      // Invalider le cache et recharger les projets
+      projectsData.invalidateProjects();
+      
+      // Recharger les projets
+      const result = await projectsData.fetchProjects();
+      if (result) {
+        setProjects(result.projects);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du projet:', error);
+    } finally {
+      setIsDeletingProject(null);
+    }
+  };
 
   if (loading && projects.length === 0) {
     return (
@@ -170,10 +226,27 @@ export default function ProjectList() {
           <>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {publishedVideos.map((video) => (
+              <div className='relative' key={video.id}>
                 <VideoCard 
-                  key={video.id}
                   video={video}
                 />
+                <button 
+                  className={`absolute top-4 right-4 p-2 rounded-full transition-all ${
+                    isDeleting === video.id 
+                      ? 'bg-red-100 cursor-not-allowed opacity-50' 
+                      : 'bg-white/80 hover:bg-red-50 hover:scale-110'
+                  }`}
+                  onClick={() => handleDeleteVideo(video.id)}
+                  disabled={isDeleting === video.id}
+                  title={isDeleting === video.id ? 'Suppression en cours...' : 'Supprimer la vidéo'}
+                >
+                    {isDeleting === video.id ? (
+                    <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                    ) : (
+                    <Icon name="delete" />
+                    )}
+                </button>
+              </div>
               ))}
             </div>
             
@@ -215,10 +288,27 @@ export default function ProjectList() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredProjects.map((project) => (
-              <ProjectCard 
-                key={project._id}
-                project={project}
-              />
+              <div className='relative' key={project._id}>
+                <ProjectCard 
+                  project={project}
+                />
+                <button 
+                  className={`absolute top-4 right-4 p-2 rounded-full transition-all ${
+                    isDeletingProject === project._id 
+                      ? 'bg-red-100 cursor-not-allowed opacity-50' 
+                      : 'bg-white/80 hover:bg-red-50 hover:scale-110'
+                  }`}
+                  onClick={() => handleDeleteProject(project._id)}
+                  disabled={isDeletingProject === project._id}
+                  title={isDeletingProject === project._id ? 'Suppression en cours...' : 'Supprimer le projet'}
+                >
+                    {isDeletingProject === project._id ? (
+                    <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                    ) : (
+                    <Icon name="delete" />
+                    )}
+                </button>
+              </div>
             ))}
           </div>
         )

@@ -73,10 +73,27 @@ export const useVideosData = () => {
     cache.invalidatePattern(/^videos-/);
   };
 
+  const deleteVideo = async (videoId: string) => {
+    const response = await fetch(`/api/videos/${videoId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || "Erreur lors de la suppression de la vidéo");
+    }
+  };
+
   return {
     fetchVideos,
     prefetchNextPage,
     invalidateVideos,
+    deleteVideo,
     loading: cache.loading,
     error: cache.error,
     getCacheSize: cache.getSize,

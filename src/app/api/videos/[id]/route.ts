@@ -69,3 +69,46 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await connectDB();
+
+    const { id } = await params;
+
+    // Vérifier que l'ID est un ID MongoDB valide
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json(
+        { success: false, error: "ID de vidéo non valide" },
+        { status: 400 }
+      );
+    }
+
+    // Supprimer le projet
+    const result = await Project.deleteOne({ _id: id });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { success: false, error: "Vidéo non trouvée" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Vidéo supprimée avec succès",
+    });
+  } catch (error) {
+    console.error("❌ Erreur lors de la suppression de la vidéo:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Erreur inconnue",
+      },
+      { status: 500 }
+    );
+  }
+}
