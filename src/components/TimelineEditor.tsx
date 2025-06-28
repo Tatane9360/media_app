@@ -1573,7 +1573,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
   }, [cleanupTrimmingHandlers]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-white">
+    <div className="flex flex-col h-full bg-gray-900 text-foreground">
       {/* Prévisualisation vidéo */}
       <div className="w-full bg-black aspect-video relative group">
         <VideoPreview
@@ -1646,49 +1646,53 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       </div>
       
       {/* Contrôles de zoom et outils */}
-      <div className="flex items-center justify-between p-2 bg-gray-800 text-white">
-        {/* Contrôles de zoom */}
-        <div className="flex items-center">
-          <button 
-            onClick={() => setScale(Math.max(50, scale - 10))}
-            className="px-2 py-1 bg-gray-700 rounded"
-          >
-            <Icon name="less" size={24} />
-          </button>
-          <span className="mx-2">{scale}%</span>
-          <button 
-            onClick={() => setScale(Math.min(200, scale + 10))}
-            className="px-2 py-1 bg-gray-700 rounded"
-          >
-            <Icon name="add" size={24} />
-          </button>
-        </div>
-        
-        {/* Outils d'édition */}
-        <div className="flex items-center space-x-2">
-          <CutToolButton
-            isActive={cutToolActive}
-            onClick={toggleCutTool}
-          />
+      <div className="flex items-center justify-between p-4 bg-background text-foreground">
+        <h2 className='uppercase'>Timeline vidéo</h2>
+
+        <div className="flex items-center gap-4">
+          {/* Contrôles de zoom */}
+          <div className="flex items-center">
+            <button 
+              onClick={() => setScale(Math.max(50, scale - 10))}
+              className="px-2 py-1"
+            >
+              <Icon name="less" size={10} />
+            </button>
+            <span className="mx-2">{scale}%</span>
+            <button 
+              onClick={() => setScale(Math.min(200, scale + 10))}
+              className="px-2 py-1"
+            >
+              <Icon name="add" size={10} />
+            </button>
+          </div>
+          
+          {/* Outils d'édition */}
+          <div className="flex items-center space-x-2">
+            <CutToolButton
+              isActive={cutToolActive}
+              onClick={toggleCutTool}
+            />
+          </div>
         </div>
       </div>
       
       {/* Conteneur de timeline */}
       <div 
         ref={timelineRef}
-        className="flex-1 overflow-x-auto bg-gray-900 relative"
+        className="flex-1 overflow-x-auto bg-background relative"
         onScroll={handleTimelineScroll}
       >
         {/* Règle temporelle */}
         <div 
-          className="h-8 border-b border-gray-700 relative"
+          className="h-8 border-b border-secondary relative"
           style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
         >
           {/* Marqueurs secondaires (plus petits) */}
           {timeMarkers.secondary.map((time) => (
             <div 
               key={`secondary-${time}`}
-              className="absolute top-4 h-4 border-l border-gray-700"
+              className="absolute top-4 h-4 border-l border-secondary"
               style={{ left: `${time * pixelsPerSecond}px` }}
             />
           ))}
@@ -1697,30 +1701,30 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           {timeMarkers.primary.map((time) => (
             <div 
               key={`primary-${time}`}
-              className="absolute top-0 h-8 border-l border-gray-600"
+              className="absolute top-0 h-8 border-l border-secondary"
               style={{ left: `${time * pixelsPerSecond}px` }}
             >
-              <span className="absolute top-0 left-1 text-xs text-gray-400">{formatTime(time)}</span>
+              <span className="absolute top-0 left-1 text-xs text-foreground">{formatTime(time)}</span>
             </div>
           ))}
           
           {/* Indicateur de temps actuel */}
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+            className="absolute top-0 bottom-0 w-0.5 bg-main z-10"
             style={{ left: `${currentTime * pixelsPerSecond}px` }}
           />
         </div>
         
         {/* Pistes vidéo */}
         <div 
-          className="flex flex-col"
+          className="flex flex-col bg-secondary"
           onMouseMove={handleTimelineMouseMove}
           onClick={handleTimelineClick}
         >
           {Array.from({ length: 3 }).map((_, trackIndex) => (
             <div 
               key={`track-${trackIndex}`}
-              className="h-20 border-b border-gray-700 relative"
+              className="h-20 border-b border-background relative"
               style={{ width: `${timeline.duration * pixelsPerSecond}px` }}
               data-track-index={trackIndex}
               onDragOver={(e) => handleDragOver(e, trackIndex)}
@@ -1792,13 +1796,13 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                             height={112}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-1 truncate">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-foreground text-xs px-1 truncate">
                             {getAssetDisplayName(clip.asset)}
                             {clip.asset.duration ? ` (${clip.asset.duration.toFixed(1)}s)` : ''}
                           </div>
                         </div>
                       ) : (
-                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white text-xs p-1 text-center">
+                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-foreground text-xs p-1 text-center">
                           {clip.assetId ? 
                             "Asset non disponible" : 
                             "Clip invalide"}
@@ -1838,9 +1842,9 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         </div>
         
         {/* Timeline Audio */}
-        <div className="bg-gray-800 border-t border-gray-700">
-          <div className="p-2 bg-gray-700">
-            <h3 className="text-white font-semibold">Timeline Audio</h3>
+        <div className="bg-secondary">
+          <div className="p-4 bg-background">
+            <h2 className="text-foreground uppercase">Timeline Audio</h2>
           </div>
           
           {/* Pistes audio */}
@@ -1852,10 +1856,10 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
           >
             {/* Piste 0: Audio des clips vidéo (liés) */}
             <div 
-              className="h-16 bg-gray-800 border-b border-gray-600 relative"
+              className="h-16 bg-secondary border-b border-background relative"
               data-track-index="0"
             >
-              <div className="absolute left-2 top-2 text-gray-400 text-xs">
+              <div className="absolute left-2 top-2 text-foreground text-xs">
                 Audio vidéo (liées)
               </div>
               
@@ -1891,16 +1895,12 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             {[1, 2, 3].map((trackIndex) => (
               <div 
                 key={`audio-track-${trackIndex}`}
-                className="h-16 bg-gray-900 border-b border-gray-600 relative"
+                className="h-16 bg-navy border-b border-background relative"
                 data-track-index={trackIndex}
                 onDragOver={(e) => handleDragOver(e, trackIndex)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, trackIndex)}
-              >
-                <div className="absolute left-2 top-2 text-gray-400 text-xs">
-                  Audio {trackIndex}
-                </div>
-                
+              >          
                 {timeline.audioTracks
                   .filter(track => !track.linkedVideoClipId && track.trackIndex === trackIndex)
                   .map((track, index) => {
@@ -1952,15 +1952,15 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       </div>
       
       {/* Panel des assets */}
-      <div className="p-4 bg-gray-800 border-t border-gray-700">
-        <div className='flex justify-between w-full gap-2'>
-          <h3 className="text-white font-semibold mb-2">Assets vidéo</h3>
+      <div className="p-4 bg-background">
+        <div className='flex justify-between w-full gap-2 py-4'>
+          <h3 className="text-foreground font-semibold mb-2">Assets vidéo</h3>
           <div
             className="cursor-pointer"
             onClick={() => onShowAssetModal?.()}
             title="Ajouter un nouvel asset vidéo ou audio"
           >
-            <Icon name="add" />
+            <Icon name="add" size={20} />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -1968,7 +1968,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             {videoAssets.filter(asset => !asset.isAudioOnly).map(asset => (
             <div 
               key={asset._id || asset.id}
-              className="bg-gray-800 rounded overflow-hidden cursor-pointer relative"
+              className="bg-background rounded overflow-hidden cursor-pointer relative"
               draggable
               onDragStart={() => handleDragStart(asset)}
             >
@@ -1992,7 +1992,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               )}
               </div>
               <div className="p-2">
-              <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
+              <div className="text-foreground text-sm truncate">{getAssetDisplayName(asset)}</div>
               <div className="text-gray-400 text-xs">
                 {formatTime(asset.duration)}
                 {assetHasAudio(asset) && <span className="ml-1 text-green-400">🎵</span>}
@@ -2004,7 +2004,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               
               {/* Gestionnaires de clic */}
               <div
-              className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
+              className="absolute inset-0 cursor-pointer hover:bg-foreground/10 transition-colors"
               onClick={(e) => {
                 if (e.shiftKey && assetHasAudio(asset)) {
                 // Shift + clic = ajouter seulement l'audio
@@ -2024,7 +2024,16 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             ))}
 
             {/* Audio Only Assets */}
-            <h3 className="text-white font-semibold mb-2 col-span-3 mt-4">Assets audio</h3>
+            <div className='flex justify-between w-full gap-2 py-4 col-span-3'>
+              <h3 className="text-foreground font-semibold mb-2">Assets audio</h3>
+              <div
+                className="cursor-pointer"
+                onClick={() => onShowAssetModal?.()}
+                title="Ajouter un nouvel asset vidéo ou audio"
+              >
+                <Icon name="add" size={20} />
+              </div>
+            </div>
             {videoAssets.filter(asset => asset.isAudioOnly).map(asset => (
             <div 
               key={`audio-${asset._id || asset.id}`}
@@ -2036,7 +2045,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               <Icon name="play" size={48} className="text-gray-500" />
               </div>
               <div className="p-2">
-              <div className="text-white text-sm truncate">{getAssetDisplayName(asset)}</div>
+              <div className="text-foreground text-sm truncate">{getAssetDisplayName(asset)}</div>
               <div className="text-gray-400 text-xs">
                 {formatTime(asset.duration)}
                 <span className="ml-1 text-green-400">🎵</span>
@@ -2048,7 +2057,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               
               {/* Gestionnaires de clic */}
               <div
-              className="absolute inset-0 cursor-pointer hover:bg-white/10 transition-colors"
+              className="absolute inset-0 cursor-pointer hover:bg-foreground/10 transition-colors"
               onClick={() => {
                 // Toujours ajouter comme piste audio indépendante
                 addAudioTrack(asset, 1);
@@ -2062,20 +2071,20 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
       
       {/* Propriétés du clip sélectionné */}
       {selectedClip && (
-        <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <h3 className="text-white text-lg mb-2">Propriétés du clip vidéo</h3>
+        <div className="p-4 bg-gray-800 border-t border-secondary">
+          <h3 className="text-foreground text-lg mb-2">Propriétés du clip vidéo</h3>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-400 mb-1">Position dans la timeline</label>
-              <div className="text-white bg-gray-700 p-2 rounded">
+              <div className="text-foreground bg-secondary p-2 rounded">
                 {formatTime(selectedClip.startTime)} - {formatTime(selectedClip.endTime)}
               </div>
             </div>
             
             <div>
               <label className="block text-gray-400 mb-1">Trimming</label>
-              <div className="text-white bg-gray-700 p-2 rounded">
+              <div className="text-foreground bg-secondary p-2 rounded">
                 <div className="flex justify-between">
                   <span>Début: {(selectedClip.trimStart || 0).toFixed(1)}s</span>
                   <span>Fin: {(selectedClip.trimEnd || 0).toFixed(1)}s</span>
@@ -2108,7 +2117,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
             <div className="flex items-end">
               <button
                 onClick={() => removeClip(selectedClip.id as string)}
-                className="bg-red-600 text-white px-4 py-2 rounded"
+                className="bg-red-600 text-foreground px-4 py-2 rounded"
               >
                 Supprimer le clip
               </button>
@@ -2122,7 +2131,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
         (track.id === selectedAudioTrackId) || (track._id?.toString() === selectedAudioTrackId)
       ) && (
         <div className="p-4 bg-gray-800 border-t border-gray-700">
-          <h3 className="text-white text-lg mb-2">Propriétés de la piste audio</h3>
+          <h3 className="text-foreground text-lg mb-2">Propriétés de la piste audio</h3>
           
           {(() => {
             const selectedAudioTrack = timeline.audioTracks.find(track => 
@@ -2137,14 +2146,14 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-400 mb-1">Type</label>
-                  <div className="text-white bg-gray-700 p-2 rounded">
+                  <div className="text-foreground bg-gray-700 p-2 rounded">
                     {isLinkedTrack ? 'Audio lié (vidéo)' : 'Audio indépendant'}
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-gray-400 mb-1">Position dans la timeline</label>
-                  <div className="text-white bg-gray-700 p-2 rounded">
+                  <div className="text-foreground bg-gray-700 p-2 rounded">
                     {formatTime(selectedAudioTrack.startTime)} - {formatTime(selectedAudioTrack.endTime)}
                   </div>
                 </div>
@@ -2178,7 +2187,7 @@ const TimelineEditor: React.FC<TimelineEditorProps> = ({
                   <div className="flex items-end">
                     <button
                       onClick={() => removeAudioTrack(selectedAudioTrack.id || selectedAudioTrack._id?.toString() || '')}
-                      className="bg-red-600 text-white px-4 py-2 rounded"
+                      className="bg-red-600 text-foreground px-4 py-2 rounded"
                     >
                       Supprimer la piste
                     </button>
