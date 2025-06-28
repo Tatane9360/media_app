@@ -96,7 +96,7 @@ const ActualitesCarousel = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-600 flex items-center justify-center">
-                          <span className="text-gray-400">Pas d'image</span>
+                          <span className="text-gray-400">Pas d&apos;image</span>
                         </div>
                       )}
                     </div>
@@ -138,7 +138,7 @@ const ActualitesCarousel = () => {
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-600 flex items-center justify-center">
-                          <span className="text-gray-400">Pas d'image</span>
+                          <span className="text-gray-400">Pas d&apos;image</span>
                         </div>
                       )}
                     </div>
