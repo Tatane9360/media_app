@@ -71,7 +71,7 @@ export default function NewProject() {
   };
 
   return (
-    <div className='mt-6'>
+    <div className='mt-6 p-4'>
       <div className="max-w-2xl mx-auto flex flex-col gap-10">
         <div className='flex flex-col gap-4'>
           <BackButton variant='icon-only' />
