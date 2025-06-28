@@ -85,7 +85,7 @@ export default function MentionsLegalesPage() {
             </h2>
             <div className="text-sm lg:text-base opacity-90 leading-relaxed">
               <p>
-                L&apos;ensemble de ce site relève de la législation française et internationale sur le droit d'auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
+                L&apos;ensemble de ce site relève de la législation française et internationale sur le droit d&apos;auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
               </p>
             </div>
           </section>
