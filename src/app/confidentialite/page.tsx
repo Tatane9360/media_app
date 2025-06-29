@@ -5,17 +5,17 @@ import { BackButton } from '@components';
 
 export default function ConfidentialitePage() {
   return (
-    <main className="min-h-screen bg-[var(--background)] pt-6 pb-24">
+    <main className="min-h-screen bg-[var(--background)] pt-6 pb-24 text-foreground dark:text-light">
       <div className="flex items-center px-4 lg:px-8 mb-4">
         <BackButton variant="icon-only" />
       </div>
-      
+
       <div className="px-4 lg:px-8 max-w-4xl mx-auto">
-        <h1 className="text-white text-2xl lg:text-3xl font-bold tracking-widest mb-8">
+        <h1 className="text-foreground dark:text-light text-2xl lg:text-3xl font-bold tracking-widest mb-8">
           POLITIQUE DE CONFIDENTIALITÉ
         </h1>
-        
-        <div className="bg-[var(--navy)] rounded-3xl p-6 lg:p-8 text-white space-y-6">
+
+        <div className="bg-[var(--navy)] rounded-3xl p-6 lg:p-8 space-y-6">
           <section>
             <h2 className="text-xl font-bold text-[var(--primary)] mb-4">
               1. COLLECTE DES DONNÉES
@@ -159,4 +159,4 @@ export default function ConfidentialitePage() {
       </div>
     </main>
   );
-} 
+}

@@ -114,7 +114,7 @@ const VideosSection = () => {
   }
 
   return (
-    <section className="bg-white dark:bg-[var(--background)] px-6 py-8 text-foreground">
+    <section className="bg-white dark:bg-[var(--background)] px-6 py-8 text-light">
       <h2 className="text-foreground dark:text-light text-2xl font-bold mb-6">
         DERNIÈRES VIDÉOS
       </h2>
@@ -135,18 +135,18 @@ const VideosSection = () => {
 
           {/* Informations de la vidéo */}
           <div className="p-6">
-            <h3 className="text-foreground dark:text-light text-xl font-bold mb-3 line-clamp-2">
+            <h3 className="text-light text-xl font-bold mb-3 line-clamp-2">
               {video.title}
             </h3>
 
-            <div className="flex items-center justify-between mb-4 text-sm text-foreground/70 dark:text-light/70">
+            <div className="flex items-center justify-between mb-4 text-sm text-light/70">
               <span>{video.channelTitle}</span>
               <span>{formatDate(video.publishedAt)}</span>
             </div>
 
             {/* Statistiques */}
             {video.statistics && (
-              <div className="flex items-center gap-6 mb-6 text-sm text-foreground/80 dark:text-light/80">
+              <div className="flex items-center gap-6 mb-6 text-sm text-light/80">
                 <div className="flex items-center gap-2">
                   <Icon name="eye" size={16} color="currentColor" />
                   <span>{formatNumber(video.statistics.viewCount)} vues</span>
