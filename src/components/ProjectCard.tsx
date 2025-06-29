@@ -45,7 +45,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const thumbnailUrl = project.thumbnailUrl || '/placeholders/video-placeholder.svg';
 
   return (
-    <div className={`group ${className}`}>
+    <div className={`group ${className} bg-[var(--background)]`}>
       <Link href={`/project/${project._id}`}>
         <div className="flex flex-col gap-3">
           {/* Thumbnail */}

@@ -83,7 +83,7 @@ export default function BlogPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[var(--background)] pt-6 pb-24">
+      <main className="min-h-screen  pt-6 pb-24">
         <div className="flex items-center px-4 lg:px-8 mb-4">
           <BackButton variant="icon-only" />
         </div>

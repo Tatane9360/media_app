@@ -23,7 +23,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light-only) {
     --background: var(--color-dark);
     --foreground: var(--color-light);
     --secondary: var(--color-navy);

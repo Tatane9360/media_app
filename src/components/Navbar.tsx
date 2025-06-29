@@ -61,7 +61,7 @@ const Navbar = () => {
   const blogPath = getBlogLink();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-fit w-[100dvw] px-4 py-6 bg-navy flex items-center justify-around z-50">
+    <nav className="bg-[var(--background)] fixed bottom-0 left-0 right-0 h-fit w-[100dvw] px-4 py-6 bg-navy flex items-center justify-around z-50">
       <Link href={homePath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="home" 

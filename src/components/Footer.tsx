@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const Footer = () => {
   return (
-    <footer className="bg-dark px-6 py-8 pb-20">
+    <footer className="bg-dark px-6 py-8 pb-20 bg-[var(--background)]">
       <div className="text-center">
         <h3 className="text-light text-lg font-bold mb-6">
           RETROUVEZ NOUS ICI

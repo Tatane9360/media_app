@@ -15,8 +15,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Media App - Admin Panel",
-  description: "Admin panel for media application",
+  title: "Media App",
+  description: "Application de gestion de médias",
 };
 
 export default function RootLayout({
@@ -25,12 +25,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#fff" />
+      
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Media App" />
+        <link rel="apple-touch-icon" href="/images/apple-icon.png" /> 
+        <link rel="manifest" href="/manifest.json" />
+        
+      
       </head>
       <body
         className={`${poppins.variable} antialiased pb-16`}

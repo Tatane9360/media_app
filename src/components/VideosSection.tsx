@@ -26,11 +26,11 @@ const VideosSection = () => {
     const fetchLatestVideo = async () => {
       try {
         const response = await fetch('/api/youtube/latest');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch video');
         }
-        
+
         const data = await response.json();
         setVideo(data);
       } catch (err) {
@@ -65,8 +65,8 @@ const VideosSection = () => {
 
   if (loading) {
     return (
-      <section className="bg-dark px-6 py-8">
-        <h2 className="text-light text-2xl font-bold mb-6">
+      <section className="bg-white dark:bg-[var(--background)] px-6 py-8 text-foreground">
+        <h2 className="text-foreground dark:text-light text-2xl font-bold mb-6">
           DERNIÈRES VIDÉOS
         </h2>
         <div className="relative max-w-4xl mx-auto">
@@ -85,8 +85,8 @@ const VideosSection = () => {
 
   if (error || !video) {
     return (
-      <section className="bg-dark px-6 py-8">
-        <h2 className="text-light text-2xl font-bold mb-6">
+      <section className="bg-white dark:bg-[var(--background)] px-6 py-8 min-h-screen pt-6 pb-24 text-foreground">
+        <h2 className="text-foreground dark:text-light text-2xl font-bold mb-6">
           DERNIÈRES VIDÉOS
         </h2>
         <div className="relative max-w-4xl mx-auto">
@@ -100,8 +100,8 @@ const VideosSection = () => {
             <p className="text-light/70 mb-4">
               {error || 'Impossible de charger la dernière vidéo'}
             </p>
-            <Button 
-              variant="primary" 
+            <Button
+              variant="primary"
               size="md"
               onClick={() => window.location.reload()}
             >
@@ -114,11 +114,11 @@ const VideosSection = () => {
   }
 
   return (
-    <section className="bg-dark px-6 py-8">
-      <h2 className="text-light text-2xl font-bold mb-6">
+    <section className="bg-white dark:bg-[var(--background)] px-6 py-8 text-foreground">
+      <h2 className="text-foreground dark:text-light text-2xl font-bold mb-6">
         DERNIÈRES VIDÉOS
       </h2>
-      
+
       <div className="relative max-w-4xl mx-auto">
         <div className="bg-navy rounded-xl overflow-hidden">
           {/* Player vidéo YouTube */}
@@ -135,18 +135,18 @@ const VideosSection = () => {
 
           {/* Informations de la vidéo */}
           <div className="p-6">
-            <h3 className="text-light text-xl font-bold mb-3 line-clamp-2">
+            <h3 className="text-foreground dark:text-light text-xl font-bold mb-3 line-clamp-2">
               {video.title}
             </h3>
-            
-            <div className="flex items-center justify-between mb-4 text-sm text-light/70">
+
+            <div className="flex items-center justify-between mb-4 text-sm text-foreground/70 dark:text-light/70">
               <span>{video.channelTitle}</span>
               <span>{formatDate(video.publishedAt)}</span>
             </div>
 
             {/* Statistiques */}
             {video.statistics && (
-              <div className="flex items-center gap-6 mb-6 text-sm text-light/80">
+              <div className="flex items-center gap-6 mb-6 text-sm text-foreground/80 dark:text-light/80">
                 <div className="flex items-center gap-2">
                   <Icon name="eye" size={16} color="currentColor" />
                   <span>{formatNumber(video.statistics.viewCount)} vues</span>
@@ -168,9 +168,9 @@ const VideosSection = () => {
 
             {/* Bouton YouTube */}
             <div className="text-center">
-              <Button 
-                variant="white" 
-                size="lg" 
+              <Button
+                variant="white"
+                size="lg"
                 className="font-bold"
                 onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
               >
@@ -187,4 +187,4 @@ const VideosSection = () => {
   );
 };
 
-export default VideosSection; 
+export default VideosSection;

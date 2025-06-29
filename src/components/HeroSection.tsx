@@ -3,7 +3,7 @@ import Button from './Button';
 
 const HeroSection = () => {
   return (<section
-    className="relative h-96 bg-cover bg-center bg-no-repeat bg-fixed"
+    className="relative h-96 bg-cover bg-center bg-no-repeat bg-fixed bg-white dark:bg-[var(--background)]"
     style={{
       backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('/images/home-image.webp')`
     }}
@@ -27,4 +27,4 @@ const HeroSection = () => {
   );
 };
 
-export default HeroSection; 
+export default HeroSection;

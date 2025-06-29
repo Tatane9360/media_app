@@ -37,16 +37,26 @@ export default function AdminDashboard() {
       router.push("/login");
       return;
     }
-    
+
     if (isAuthenticated) {
       // Petit délai pour éviter les conflits de racing condition
       const timer = setTimeout(() => {
         loadStats();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, authLoading, router, loadStats]);
+
+  // Forcer le fond sombre et texte clair sur la page admin
+  useEffect(() => {
+    document.body.style.backgroundColor = 'var(--color-dark)';
+    document.body.style.color = 'var(--color-light)';
+    return () => {
+      document.body.style.backgroundColor = '';
+      document.body.style.color = '';
+    };
+  }, []);
 
   if (adminStats.loading || authLoading || !isAuthenticated) {
     return (
@@ -60,75 +70,82 @@ export default function AdminDashboard() {
   const hasError = adminStats.error && stats.videos === 0 && stats.articles === 0;
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Dashboard Header */}
-        <div className="bg-navy rounded-2xl p-8 mb-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-8">DASHBOARD</h1>
-          
-          {hasError && (
-            <div className="bg-red-500 text-white p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
-              <span>Erreur lors du chargement des statistiques.</span>
-              <button 
-                onClick={() => loadStats()}
-                className="bg-white text-red-500 px-3 py-1 rounded text-xs hover:bg-gray-100"
-              >
-                Recharger
-              </button>
-            </div>
-          )}
-          
-          <div className="flex justify-center gap-16">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange mb-2">{stats.videos}</div>
-              <div className="text-xl text-foreground">Vidéos</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange mb-2">{stats.articles}</div>
-              <div className="text-xl text-foreground">Actualités</div>
+    <>
+      <div className="p-6 admin-force-white">
+        <div className="max-w-4xl mx-auto">
+          {/* Dashboard Header */}
+          <div className="bg-navy rounded-2xl p-8 mb-8 text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-8">DASHBOARD</h1>
+
+            {hasError && (
+              <div className="bg-red-500 text-white p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
+                <span>Erreur lors du chargement des statistiques.</span>
+                <button
+                  onClick={() => loadStats()}
+                  className="bg-white text-red-500 px-3 py-1 rounded text-xs hover:bg-gray-100"
+                >
+                  Recharger
+                </button>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-16">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-orange mb-2">{stats.videos}</div>
+                <div className="text-xl text-foreground">Vidéos</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-orange mb-2">{stats.articles}</div>
+                <div className="text-xl text-foreground">Actualités</div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Cards */}
-        <div className="flex flex-col gap-10">
-          {/* À la une Card */}
-          <div className="flex items-center gap-9">
-            <div className="w-32 h-32 border-2 border-dashed border-foreground rounded-lg flex items-center justify-center">
-              <Icon name="bento" size={48} color="#F6F6F6" />
+          {/* Action Cards */}
+          <div className="flex flex-col gap-10">
+            {/* À la une Card */}
+            <div className="flex items-center gap-9">
+              <div className="w-32 h-32 border-2 border-dashed border-white rounded-lg flex items-center justify-center">
+                <Icon name="bento" size={48} color="#F6F6F6" />
+              </div>
+              <Link href="/admin/featured" className="flex-1">
+                <Button variant="primary" size="lg" className="w-full">
+                  À LA UNE
+                </Button>
+              </Link>
             </div>
-            <Link href="/admin/featured" className="flex-1">
-              <Button variant="primary" size="lg" className="w-full">
-                À LA UNE
-              </Button>
-            </Link>
-          </div>
 
-          {/* Actualités Card */}
-          <div className="flex items-center gap-9">
-            <div className="w-32 h-32 border-2 border-dashed border-foreground rounded-lg flex items-center justify-center">
-              <Icon name="document" size={48} color="#F6F6F6" />
+            {/* Actualités Card */}
+            <div className="flex items-center gap-9">
+              <div className="w-32 h-32 border-2 border-dashed border-white rounded-lg flex items-center justify-center">
+                <Icon name="document" size={48} color="#F6F6F6" />
+              </div>
+              <Link href="/admin/actualite" className="flex-1">
+                <Button variant="primary" size="lg" className="w-full">
+                  ACTUALITÉS
+                </Button>
+              </Link>
             </div>
-            <Link href="/admin/actualite" className="flex-1">
-              <Button variant="primary" size="lg" className="w-full">
-                ACTUALITÉS
-              </Button>
-            </Link>
-          </div>
 
-          {/* Vidéos Card */}
-          <div className="flex items-center gap-9">
-            <div className="w-32 h-32 border-2 border-dashed border-foreground rounded-lg flex items-center justify-center">
-              <Icon name="arrowUp" size={48} color="#F6F6F6" />
+            {/* Vidéos Card */}
+            <div className="flex items-center gap-9">
+              <div className="w-32 h-32 border-2 border-dashed border-white rounded-lg flex items-center justify-center">
+                <Icon name="arrowUp" size={48} color="#F6F6F6" />
+              </div>
+              <Link href="/projects" className="flex-1">
+                <Button variant="primary" size="lg" className="w-full">
+                  VIDÉOS
+                </Button>
+              </Link>
             </div>
-            <Link href="/projects" className="flex-1">
-              <Button variant="primary" size="lg" className="w-full">
-                VIDÉOS
-              </Button>
-            </Link>
           </div>
         </div>
       </div>
-    </div>
+      <style jsx global>{` 
+        .admin-force-white * {
+          color: var(--color-light) !important;
+        }
+      `}</style>
+    </>
   );
 }

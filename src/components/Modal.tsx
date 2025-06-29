@@ -36,7 +36,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className=" bg-[var(--background)] fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
       <div className="bg-[var(--navy)] rounded-3xl p-6 lg:p-8 max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
