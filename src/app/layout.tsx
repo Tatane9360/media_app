@@ -15,8 +15,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Media App",
-  description: "Application de gestion de médias",
+  title: "Sa dit koi - Contenu exclusif",
+  description: "Sa Dit Koi ? est un média digital pensé pour les 18-25 ans : vidéos, articles et témoignages sur la santé mentale, le monde du travail, les galères étudiantes... Une info vraie, utile et sans filtre, dans un ton jeune et proche.",
 };
 
 export default function RootLayout({
