@@ -104,9 +104,6 @@ function LoginForm() {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-800 bg-gray-50 focus:bg-white"
                 placeholder="Enter your password"
               />
-              <Link href="/forgot-password" className="text-sm hover:underline">
-                Mot de passe oublié ? // TODO : add forgot-password functionality
-              </Link>
             </div>
           </div>
 
