@@ -46,6 +46,40 @@ interface VideosResponse {
   };
 }
 
+// Skeleton pour la page détail vidéo
+function VideoDetailSkeleton() {
+  return (
+    <div className="min-h-screen gap-3 flex flex-col px-4 py-5 animate-pulse">
+      <div className='flex flex-col gap-4'>
+        <div className="h-8 w-12 bg-gray-800 rounded mb-2" />
+        <div className="h-8 w-1/2 bg-gray-700 rounded" />
+      </div>
+      <div className="flex flex-col gap-8">
+        {/* Video Player Skeleton */}
+        <div className="flex flex-col gap-[30px]">
+          <div className="relative rounded-4xl overflow-hidden">
+            <div className="aspect-video bg-gray-800 rounded-4xl" />
+          </div>
+          <div className="h-4 w-2/3 bg-gray-700 rounded" />
+        </div>
+        <div className='flex flex-col gap-5'>
+          <div className="h-6 w-40 bg-gray-800 rounded mb-2" />
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex gap-4" style={{ width: 'max-content' }}>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-80">
+                  <div className="aspect-video bg-gray-800 rounded-4xl mb-2" />
+                  <div className="h-5 w-2/3 bg-gray-700 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VideoDetail() {
   const [video, setVideo] = useState<Video | null>(null);
   const [otherVideos, setOtherVideos] = useState<Video[]>([]);
@@ -95,11 +129,7 @@ export default function VideoDetail() {
   }, [videoId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Chargement de la vidéo...</div>
-      </div>
-    );
+    return <VideoDetailSkeleton />;
   }
 
   if (error || !video) {

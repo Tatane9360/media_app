@@ -7,6 +7,23 @@ import Link from 'next/link';
 import { useArticleStore } from '@store';
 import { Icon, BackButton } from '@components';
 
+function ArticleCardSkeleton({ desktop = false }: { desktop?: boolean }) {
+  return (
+    <div className={desktop ? "rounded-3xl overflow-hidden shadow-xl bg-transparent animate-pulse h-[280px]" : "mb-8 rounded-3xl overflow-hidden shadow-lg bg-transparent animate-pulse h-[200px]"}>
+      <div className={desktop ? "relative h-full w-full bg-gray-800" : "relative h-full w-full bg-gray-800"}>
+        <div className="absolute inset-0 bg-gray-700 rounded-3xl" />
+        <div className={desktop ? "absolute top-4 left-4 h-6 w-24 bg-gray-600 rounded-lg" : "absolute top-3 left-3 h-5 w-16 bg-gray-600 rounded"} />
+        <div className={desktop ? "absolute top-4 right-4 h-6 w-20 bg-gray-600 rounded-full" : "absolute top-3 right-3 h-5 w-12 bg-gray-600 rounded-full"} />
+        <div className={desktop ? "absolute bottom-6 left-6 right-20" : "absolute bottom-4 left-4 right-20"}>
+          <div className={desktop ? "h-6 w-2/3 bg-gray-600 rounded mb-2" : "h-5 w-1/2 bg-gray-600 rounded mb-1"} />
+          <div className={desktop ? "h-4 w-1/2 bg-gray-700 rounded" : "h-3 w-1/3 bg-gray-700 rounded"} />
+        </div>
+        <div className={desktop ? "absolute bottom-6 right-6 h-12 w-12 bg-gray-700 rounded-full" : "absolute bottom-4 right-4 h-10 w-10 bg-gray-700 rounded-full"} />
+      </div>
+    </div>
+  );
+}
+
 export default function BlogPage() {
   const { articles: apiArticles, loading, fetchArticles, error } = useArticleStore();
   const articles = useMemo(() => {
@@ -75,9 +92,24 @@ export default function BlogPage() {
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex justify-center items-center">
-        <div className="text-white text-xl">Chargement des actualités...</div>
-      </div>
+      <main className="min-h-screen bg-[var(--background)] pt-6 pb-24">
+        <div className="flex items-center px-4 lg:px-8 mb-4">
+          <BackButton variant="icon-only" />
+        </div>
+        <h1 className="text-white text-2xl mx-4 lg:mx-8 mt-0 mb-6 lg:mb-8 font-bold tracking-widest lg:text-3xl">ACTUALITÉS</h1>
+        {/* Mobile Skeletons */}
+        <div className="px-4 max-w-lg mx-auto lg:hidden flex flex-col">
+          {[...Array(3)].map((_, i) => (
+            <ArticleCardSkeleton key={i} />
+          ))}
+        </div>
+        {/* Desktop Skeletons */}
+        <div className="hidden lg:grid grid-cols-2 xl:grid-cols-3 gap-8 px-8 max-w-7xl mx-auto">
+          {[...Array(6)].map((_, i) => (
+            <ArticleCardSkeleton key={i} desktop />
+          ))}
+        </div>
+      </main>
     );
   }
 
