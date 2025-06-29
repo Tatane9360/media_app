@@ -184,17 +184,17 @@ export default function EditArticlePage() {
           
           {/* Image upload */}
           <div>
-            <div className="relative w-[72px] h-[52px] bg-white rounded-md flex items-center justify-center overflow-hidden cursor-pointer group">
+            <div className="relative w-32 h-24 bg-white rounded-md flex items-center justify-center overflow-hidden cursor-pointer group">
               {previewImage ? (
                 <Image
                   src={previewImage}
                   alt="Aperçu de l'image"
-                  width={72}
-                  height={52}
+                  width={128}
+                  height={96}
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                   <circle cx="8.5" cy="8.5" r="1.5"/>
                   <polyline points="21 15 16 10 5 21"/>
@@ -203,7 +203,7 @@ export default function EditArticlePage() {
               
               {uploading && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                 </div>
               )}
 
