@@ -68,7 +68,7 @@ const ActualitesCarousel = () => {
   const displayedArticles = articles.slice(0, 3);
 
   return (
-    <section className="bg-white dark:bg-[var(--background)] py-8 min-h-screen pt-6 pb-24 text-foreground dark:text-light">
+    <section className="bg-white dark:bg-[var(--background)] py-8 pt-6 pb-24 text-foreground dark:text-light">
       <div className="px-4 sm:px-6 lg:px-8 mb-6">
         <h2 className="text-foreground dark:text-light text-xl sm:text-2xl font-bold">ACTUALITÉS</h2>
       </div>

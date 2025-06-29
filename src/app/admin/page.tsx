@@ -103,18 +103,6 @@ export default function AdminDashboard() {
 
           {/* Action Cards */}
           <div className="flex flex-col gap-10">
-            {/* À la une Card */}
-            <div className="flex items-center gap-9">
-              <div className="w-32 h-32 border-2 border-dashed border-white rounded-lg flex items-center justify-center">
-                <Icon name="bento" size={48} color="#F6F6F6" />
-              </div>
-              <Link href="/admin/featured" className="flex-1">
-                <Button variant="primary" size="lg" className="w-full">
-                  À LA UNE
-                </Button>
-              </Link>
-            </div>
-
             {/* Actualités Card */}
             <div className="flex items-center gap-9">
               <div className="w-32 h-32 border-2 border-dashed border-white rounded-lg flex items-center justify-center">

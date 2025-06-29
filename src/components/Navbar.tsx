@@ -71,19 +71,6 @@ const Navbar = () => {
         <span className="text-xs" style={{ color: isActive(homePath) ? '#F26B3D' : '#F6F6F6' }}>Accueil</span>
       </Link>
 
-      {isAuthenticated && (
-        <>
-          <Link href="/admin/featured" className="flex flex-col items-center gap-0.5">
-            <Icon 
-              name="bento"
-              size={28} 
-              color={isActive('/admin/featured') ? '#F26B3D' : '#F6F6F6'} 
-            />
-            <span className="text-xs" style={{ color: isActive('/admin/featured') ? '#F26B3D' : '#F6F6F6' }}>À la une</span>
-          </Link>
-        </>
-      )}
-
       <Link href={blogPath} className="flex flex-col items-center gap-0.5">
         <Icon 
           name="document" 
