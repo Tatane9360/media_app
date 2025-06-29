@@ -29,6 +29,18 @@ interface VideosResponse {
   };
 }
 
+// Skeleton pour VideoCard
+function VideoCardSkeleton() {
+  return (
+    <div className="animate-pulse flex flex-col gap-3">
+      <div className="relative aspect-video rounded-4xl overflow-hidden bg-gray-800">
+        <div className="w-full h-full bg-gray-700" />
+      </div>
+      <div className="h-6 w-2/3 bg-gray-700 rounded mt-2" />
+    </div>
+  );
+}
+
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +74,15 @@ export default function Videos() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-xl">Chargement des vidéos...</div>
+      <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center px-4 py-5 gap-8">
+        <div className='flex flex-col gap-4 w-full max-w-2xl'>
+          <div className="h-8 w-1/3 bg-gray-800 rounded mb-4 animate-pulse" />
+        </div>
+        <div className="flex flex-col gap-8 w-full max-w-2xl">
+          {[...Array(6)].map((_, i) => (
+            <VideoCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
