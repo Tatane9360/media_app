@@ -6,14 +6,12 @@ import { Project } from "@models";
 /**
  * GET /api/videos/[id] - Récupère une vidéo spécifique
  */
-export async function GET(
-  request: NextRequest,
-  context: any
-) {
+export async function GET(request: NextRequest, context: any) {
   try {
     await connectDB();
 
-    const id = context?.params?.id;
+    const params = await context.params;
+    const id = params.id;
 
     // Récupérer le projet avec ses détails complets
     const project = (await Project.findById(id)
@@ -70,11 +68,9 @@ export async function GET(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: any
-) {
-  const id = context?.params?.id;
+export async function DELETE(request: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
   try {
     await connectDB();
 

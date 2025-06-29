@@ -6,16 +6,14 @@ import { Project } from "@models";
 import { Clip } from "@interface";
 
 // Récupérer un projet par son ID
-export async function GET(
-  req: NextRequest,
-  context: any
-) {
-  const id = context?.params?.id;
-  
+export async function GET(req: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
+
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -99,16 +97,14 @@ export async function GET(
 }
 
 // Mettre à jour un projet
-export async function PUT(
-  req: NextRequest,
-  context: any
-) {
-  const id = context?.params?.id;
-  
+export async function PUT(req: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
+
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -191,16 +187,14 @@ export async function PUT(
 }
 
 // Supprimer un projet
-export async function DELETE(
-  req: NextRequest,
-  context: any
-) {
-  const id = context?.params?.id;
-  
+export async function DELETE(req: NextRequest, context: any) {
+  const params = await context.params;
+  const id = params.id;
+
   try {
     // Vérifier l'authentification
     const token = req.cookies.get("token")?.value;
-    
+
     if (!token) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
